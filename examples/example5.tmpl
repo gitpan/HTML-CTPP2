@@ -1,0 +1,31 @@
+<TMPL_var urlescape("Hello, World! Проверка Escape. 1234567890")>
+<TMPL_var HTMLESCAPE("1 <b> \" ' &quot;")>
+<TMPL_var xmlescape("2 <b> \" \\000 \' &quot;")>
+
+<TMPL_var Version()>
+
+<TMPL_var Version("full")>
+
+<TMPL_var IN_SET(s2, 1, 2, 3, 4)>
+<TMPL_var HREF_PARAM("s2", Escape)>
+<TMPL_var FoRM_PARAM("s2", Escape)>
+<TMPL_var FoRM_PARAM("s2", urlescape(Escape) )>
+<TMPL_var DATE_FORMAT(1200490323, "%Y-%m-%d %H:%M:%S")>
+<TMPL_var HREF_PARAM("foo", DATE_FORMAT(1200490323, "%Y-%m-%d %H:%M:%S"))>
+
+<TMPL_var BASE64_DECODE(BASE64_ENCODE("1"))>
+<TMPL_var BASE64_DECODE(BASE64_ENCODE("12"))>
+<TMPL_var BASE64_DECODE(BASE64_ENCODE("123"))>
+<TMPL_var BASE64_DECODE(BASE64_ENCODE("1234"))>
+<TMPL_var BASE64_DECODE(BASE64_ENCODE("12345"))>
+<TMPL_var BASE64_DECODE(BASE64_ENCODE("123456"))>
+<TMPL_var BASE64_DECODE(BASE64_ENCODE("1234567"))>
+<TMPL_var BASE64_DECODE(BASE64_ENCODE("12345678"))>
+
+<TMPL_var BASE64_ENCODE("Hello, World!")>
+<TMPL_var BASE64_DECODE("SGVsbG8sIFdvcmxkIQ==")>
+
+<TMPL_var HTMLESCAPE(OBJ_DUMP(s1, s2))>
+
+<TMPL_var OBJ_DUMP()>
+End.
