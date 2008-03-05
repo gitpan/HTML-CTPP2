@@ -14,7 +14,6 @@ my $T = new HTML::CTPP2();
 ok( ref $T eq "HTML::CTPP2", "Create object.");
 
 my @IncludeDirs = ("./", "examples");
-
 ok( $T -> include_dirs(\@IncludeDirs) == 0);
 
 my $Bytecode = $T -> parse_template("hello.tmpl");
@@ -31,7 +30,7 @@ undef $Bytecode;
 $Bytecode = $T -> load_bytecode("hello.ct2");
 ok( ref $Bytecode eq "HTML::CTPP2::Bytecode", "Create object.");
 
-my %H = ("world" => "beautiful World");
+my %H = ("world" => { name => "beautiful World" });
 ok( $T -> param(\%H) == 0);
 
 my $Result = $T -> output($Bytecode);
@@ -43,15 +42,15 @@ ok( $T -> dump_params() eq "HASH {\n}\n");
 $Result = $T -> output($Bytecode);
 ok( $Result eq "Hello, !\n\n");
 
-my %HH = ("world" => "awfull World");
+my %HH = ("world" => { name => "awfull World"});
 ok( $T -> param(\%HH) == 0);
 
-ok( $T -> dump_params() eq "HASH {\n    world => awfull World\n}\n");
+ok( $T -> dump_params() eq "HASH {\n    world => 1\n    world.name => awfull World\n}\n");
 
 $Result = $T -> output($Bytecode);
 ok( $Result eq "Hello, awfull World!\n\n");
 
-%HH = ("world" => "World");
+%HH = ("world.name" => "World");
 $T -> param(\%HH);
 $Result = $T -> output($Bytecode);
 ok( $Result eq "Hello, World!\n\n");

@@ -13,7 +13,7 @@ require AutoLoader;
 
 );
 
-$VERSION = '2.0.4';
+$VERSION = '2.0.5';
 
 bootstrap HTML::CTPP2 $VERSION;
 
@@ -84,6 +84,9 @@ __END__;
   (for example __FIRST__) are reserved names and should NOT be used
   by the developer. Variable names can be composed of letters, numbers,
   and underscores (_). Every variable name in CTPP must start with a letter.
+  
+  You can access subproperties (hash references to oher object) of variable by
+  specifying it after variable name separated by dot '.': <TMPL_var foo.bar>.
 
 =head2 TMPL_var
 
@@ -92,7 +95,7 @@ __END__;
   In CTPP template engine two types of variables are defined: local and global.
   The sense of these two concepts is completely equal with a similar idea
   in the other algorithmic languages such as C++ & Perl.
-
+  
   For variable output use operator <TMPL_var VAR_NAME>
 
   Example 1.1
@@ -106,6 +109,11 @@ __END__;
   Template: "<a href="/index.cgi?username=<TMPL_var URLESCAPE(username)>">"
   Parameter: username => "Андрей" (string in non-ascii7 character set)
   Output: "<a href="/index.cgi?username=%C0%ED%E4%F0%E5%E9">"
+
+  Example 1.3
+  Template: User <TMPL_var user.name> has id <TMPL_var user.id>
+  Parameter: user => { name => "Fred", id => 1234 }
+  Output: User Fred has id 1234
 
 =head2 TMPL_if, TMPL_unless
 
@@ -307,6 +315,15 @@ __END__;
 
   # Now we can load compiled template without parsing original file
   my $other_bytecode = $T -> load_bytecode("hello.ct2");
+
+=head2 load_udf() - load user-defined function from external storage
+
+  If you have a shared library wich contains compiled user-defined functions,
+  you may load it by calling method load_udf().
+  Please refer to documentation to explain, how you can write user-defined CTPP
+  functions in C++.
+
+  $T -> load_udf('/shared/library/name.so', 'UserDefinedFunctionClassName');
 
 =head1 AUTHOR
 

@@ -14,6 +14,6 @@ my $T = new HTML::CTPP2();
 ok( ref $T eq "HTML::CTPP2", "Create object.");
 
 # Test base methods
-my @methods = qw/param reset clear_params output include_dirs load_bytecode parse_template/;
+my @methods = qw/param reset clear_params output include_dirs load_bytecode parse_template load_udf/;
 can_ok($T, @methods);
 
