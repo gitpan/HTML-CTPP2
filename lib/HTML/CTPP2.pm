@@ -13,7 +13,7 @@ require AutoLoader;
 
 );
 
-$VERSION = '2.0.5';
+$VERSION = '2.1.1';
 
 bootstrap HTML::CTPP2 $VERSION;
 
@@ -62,6 +62,13 @@ __END__;
       Here is loop body:
           Key: first
           Key: second
+
+  Since version 2.1.1 of CTPP *library*, you can also use expressions in <TMPL_if
+  and in <TMPL_var operators:
+
+  File `math_expr.tmpl`:
+  <TMPL_var a> + <TMPL_var b> = <TMPL_var (a + b)>
+  <TMPL_if (age < 18 && age > 90)>Invalid age<TMPL_else>Age correct</TMPL_if> 
 
 =head1 DESCRIPTION
 
@@ -149,6 +156,7 @@ __END__;
   The branches of <TMPL_elsif> and <TMPL_else> are not firmly binds,
   it means that the following notification is allowed:
   <TMPL_if LOGICAL_EXPR> Some instructions </TMPL_if>.
+
   Thus the operator <TMPL_unless differs from the operator <TMPL_if in the
   executing some instructions if the evaluated value is false.
 
@@ -198,11 +206,15 @@ __END__;
   Example 3.1:
     File `main.tmpl`:
     <TMPL_loop foo>
-        <TMPL_include "filename.tmpl">
+        <TMPL_include "filename.tmpl" map(bar : baz, orig_param : include_param)>
     </TMPL_loop>
 
     File filename.tmpl:
-       <TMPL_var bar>
+       <TMPL_var baz>
+
+  You can rename variable in included templates. In example 3.1 variable 'baz'
+  in file 'filename.tmpl' was renamed to 'bar' and 'orig_param' to 'include_param'.
+  This is useful when you include one template many times in main template.
 
   Attention! You CAN NOT place a part of a loop or condition in separate templates.
   In other words, this construction will not work:
@@ -251,6 +263,7 @@ __END__;
     * ICONV
     * VERSION
     * OBJ_DUMP
+    * CAST
 
   Please refer to CTPP2 library documentation to get detailed
   information about these functions.
@@ -263,9 +276,29 @@ __END__;
 
   my $T = new HTML::CTPP2();
 
+  You can also change some internal variables of CTPP engine:
+  my $T = new HTML::CTPP2(arg_stack_size  => 1024,
+                          code_stack_size => 1024,
+                          steps_limit     => 10240,
+                          max_functions   => 1024);
+
+  'arg_stack_size'  - Max. size of stack of arguments
+  'code_stack_size' - Max. stack size
+  'max_functions'   - Max. number of functions in CTPP standard library
+
+  Normally you should now change these parameters, to explanation please
+  refer to CTPP library documentation.
+
+  'steps_limit' - template execution limit (in steps). Default value
+  is 1 048 576 (1024*1024). You can limit template execution time by
+  specifying this parameter.
+
+  Note, if execution limit is reached, template engine generates error
+  and you should use eval {} to catch it. 
+
 =head2 param() - set some parameters
 
-  my %Hash = ( "foo" => "bar", "blahblah" => "clah-clah");
+  my %Hash = ("foo" => "bar", "blahblah" => "clah-clah");
   $T -> param(\%H);
 
 =head2 clear_params(), reset() - reset all the parameters to undef.
@@ -323,7 +356,7 @@ __END__;
   Please refer to documentation to explain, how you can write user-defined CTPP
   functions in C++.
 
-  $T -> load_udf('/shared/library/name.so', 'UserDefinedFunctionClassName');
+  $T -> load_udf('/shared/library/name.so', 'UserDefinedFunctionName');
 
 =head1 AUTHOR
 

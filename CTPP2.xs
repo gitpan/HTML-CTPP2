@@ -56,7 +56,8 @@ class CTPP2
 {
 public:
 	// Constructor
-	CTPP2();
+	CTPP2(const UINT_32 & iArgStackSize, const UINT_32 & iCodeStackSize, const UINT_32 & iStepsLimit, const UINT_32 & iMaxFunctions);
+
 	// Destructor
 	~CTPP2() throw();
 
@@ -179,20 +180,19 @@ private:
 //
 // Constructor
 //
-CTPP2::CTPP2()
+CTPP2::CTPP2(const UINT_32 & iArgStackSize, const UINT_32 & iCodeStackSize, const UINT_32 & iStepsLimit, const UINT_32 & iMaxFunctions)
 {
-	iStepsLimit = 10240;
 	using namespace CTPP;
 	try
 	{
 		pCDT = new CTPP::CDT(CTPP::CDT::HASH_VAL);
-		pSyscallFactory = new SyscallFactory(1024);
+		pSyscallFactory = new SyscallFactory(iMaxFunctions);
 		STDLibInitializer::InitLibrary(*pSyscallFactory);
-		pVM = new VM(*pSyscallFactory, 10240, 10240, iStepsLimit);
+		pVM = new VM(*pSyscallFactory, iArgStackSize, iCodeStackSize, iStepsLimit);
 	}
 	catch(...)
 	{
-		croak("ERROR: Exception in CTPP2::CTPP2(), please contact reki@reki.ru\n");
+		croak("ERROR: Exception in CTPP2::CTPP2(), please contact reki@reki.ru");
 	}
 }
 
@@ -221,7 +221,7 @@ CTPP2::~CTPP2() throw()
 	}
 	catch(...)
 	{
-		croak("ERROR: Exception in CTPP2::~CTPP2(), please contact reki@reki.ru\n");
+		croak("ERROR: Exception in CTPP2::~CTPP2(), please contact reki@reki.ru");
 	}
 }
 
@@ -234,7 +234,7 @@ int CTPP2::load_udf(char * szLibraryName, char * szInstanceName)
 	// Function already present?
 	if (itmExtraFn != mExtraFn.end() || pSyscallFactory -> GetHandlerByName(szInstanceName) != NULL)
 	{
- 		croak("ERROR in load_udf(): Function `%s` already present\n", szInstanceName);
+ 		croak("ERROR in load_udf(): Function `%s` already present", szInstanceName);
 		return -1;
 	}
 
@@ -244,7 +244,7 @@ int CTPP2::load_udf(char * szLibraryName, char * szInstanceName)
 	// Error?
 	if (vLibrary == NULL)
 	{
-		croak("ERROR in load_udf(): Cannot load library `%s`: `%s` \n", szLibraryName, dlerror());
+		croak("ERROR in load_udf(): Cannot load library `%s`: `%s`", szLibraryName, dlerror());
 		return -1;
 	}
 
@@ -255,7 +255,7 @@ int CTPP2::load_udf(char * szLibraryName, char * szInstanceName)
 	memcpy(szInitString + iInstanceNameLen, C_INIT_SYM_PREFIX, sizeof(C_INIT_SYM_PREFIX));
 	szInitString[iInstanceNameLen + sizeof(C_INIT_SYM_PREFIX)]= '\0';
 
-	// This if UGLY hack to avoid stupid gcc warnings
+	// This is UGLY hack to avoid stupid gcc warnings
 	// InitPtr vVInitPtr = (InitPtr)dlsym(vLibrary, szInitString); // this code violates C++ Standard
 	void * vTMPPtr = dlsym(vLibrary, szInitString);
 
@@ -263,11 +263,13 @@ int CTPP2::load_udf(char * szLibraryName, char * szInstanceName)
 
 	if (vTMPPtr == NULL)
 	{
-		croak("ERROR in load_udf(): in `%s`: cannot find function `%s`\n", szLibraryName, szInstanceName);
+		croak("ERROR in load_udf(): in `%s`: cannot find function `%s`", szLibraryName, szInstanceName);
 		return -1;
 	}
 
+	// This is UGLY hack to avoid stupid gcc warnings
 	InitPtr vVInitPtr = NULL;
+	// and this code - is correct C++ code
 	memcpy(&vVInitPtr, &vTMPPtr, sizeof(void *));
 
 	CTPP::SyscallHandler * pUDF = (CTPP::SyscallHandler *)((*vVInitPtr)());
@@ -314,9 +316,9 @@ int CTPP2::param(SV * pParams)
 		int iTMP;
 		return param(pParams, pCDT, pCDT, "", C_PREV_LEVEL_IS_UNKNOWN, iTMP);
 	}
-	catch(CTPPLogicError        & e) { croak("ERROR in param(): %s\n", e.what());                                  }
-	catch(CTPPUnixException     & e) { croak("ERROR in param(): I/O in %s: %s\n", e.what(), strerror(e.ErrNo()));  }
-	catch(CDTTypeCastException  & e) { croak("ERROR in param(): Type Cast %s\n", e.what());                        }
+	catch(CTPPLogicError        & e) { croak("ERROR in param(): %s", e.what());                                  }
+	catch(CTPPUnixException     & e) { croak("ERROR in param(): I/O in %s: %s", e.what(), strerror(e.ErrNo()));  }
+	catch(CDTTypeCastException  & e) { croak("ERROR in param(): Type Cast %s", e.what());                        }
 	catch(std::exception        & e) { croak("ERROR in param(): %s", e.what());                                    }
 	catch(...)                       { croak("ERROR in param(): Bad thing happened, please contact reki@reki.ru"); }
 
@@ -495,16 +497,16 @@ SV * CTPP2::output(Bytecode * pBytecode)
 
 		return newSVpv(sResult.data(), sResult.length());
 	}
-	catch(CTPPLogicError        & e) { croak("ERROR in output(): %s\n", e.what());                                              }
-	catch(CTPPUnixException     & e) { croak("ERROR in output(): I/O in %s: %s\n", e.what(), strerror(e.ErrNo()));              }
-	catch(IllegalOpcode         & e) { croak("ERROR in output(): Illegal opcode 0x%08X at 0x%08X\n", e.GetOpcode(), e.GetIP()); }
-	catch(InvalidSyscall        & e) { croak("ERROR in output(): Invalid syscall `%s` at 0x%08X\n", e.what(), e.GetIP());       }
-	catch(CodeSegmentOverrun    & e) { croak("ERROR in output(): %s at 0x%08X\n", e.what(),  e.GetIP());                        }
-	catch(StackOverflow         & e) { croak("ERROR in output(): Stack overflow at 0x%08X\n", e.GetIP());                       }
-	catch(StackUnderflow        & e) { croak("ERROR in output(): Stack underflow at 0x%08X\n", e.GetIP());                      }
-	catch(ExecutionLimitReached & e) { croak("ERROR in output(): Execution limit of %d step(s) reached at 0x%08X\n", iStepsLimit, e.GetIP()); }
-	catch(CDTTypeCastException  & e) { croak("ERROR in output(): Type Cast %s\n", e.what());  }
-	catch(std::exception        & e) { croak("ERROR in output(): STL error: %s\n", e.what()); }
+	catch(CTPPLogicError        & e) { croak("ERROR in output(): %s", e.what());                                              }
+	catch(CTPPUnixException     & e) { croak("ERROR in output(): I/O in %s: %s", e.what(), strerror(e.ErrNo()));              }
+	catch(IllegalOpcode         & e) { croak("ERROR in output(): Illegal opcode 0x%08X at 0x%08X", e.GetOpcode(), e.GetIP()); }
+	catch(InvalidSyscall        & e) { croak("ERROR in output(): Invalid syscall `%s` at 0x%08X", e.what(), e.GetIP());       }
+	catch(CodeSegmentOverrun    & e) { croak("ERROR in output(): %s at 0x%08X", e.what(),  e.GetIP());                        }
+	catch(StackOverflow         & e) { croak("ERROR in output(): Stack overflow at 0x%08X", e.GetIP());                       }
+	catch(StackUnderflow        & e) { croak("ERROR in output(): Stack underflow at 0x%08X", e.GetIP());                      }
+	catch(ExecutionLimitReached & e) { croak("ERROR in output(): Execution limit of %d step(s) reached at 0x%08X", iStepsLimit, e.GetIP()); }
+	catch(CDTTypeCastException  & e) { croak("ERROR in output(): Type Cast %s", e.what());  }
+	catch(std::exception        & e) { croak("ERROR in output(): STL error: %s", e.what()); }
 	catch(...) { croak("ERROR: Bad thing happened, please contact reki@reki.ru"); }
 
 return newSVpv("", 0);
@@ -529,7 +531,7 @@ int CTPP2::include_dirs(SV * aIncludeDirs)
 		SV ** pArrElement = av_fetch(pArray, iI, FALSE);
 		SV *  pElement = *pArrElement;
 
-		if (SvTYPE(pElement) != SVt_PV) { croak("ERROR in include_dirs(): Need STRING at array index %d ", iI); return -1; }
+		if (SvTYPE(pElement) != SVt_PV) { croak("ERROR in include_dirs(): Need STRING at array index %d", iI); return -1; }
 
 		STRLEN iLen;
 		char * szValue = SvPV(pElement, iLen);
@@ -552,12 +554,12 @@ Bytecode * CTPP2::load_bytecode(char * szFileName)
 	}
 	catch(CTPPLogicError        & e)
 	{
-		croak("ERROR in load_bytecode(): %s\n", e.what());
+		croak("ERROR in load_bytecode(): %s", e.what());
 		return NULL;
 	}
 	catch(CTPPUnixException     & e)
 	{
-		croak("ERROR in load_bytecode(): I/O in %s: %s\n", e.what(), strerror(e.ErrNo()));
+		croak("ERROR in load_bytecode(): I/O in %s: %s", e.what(), strerror(e.ErrNo()));
 		return NULL;
 	}
 return NULL;
@@ -575,27 +577,27 @@ Bytecode * CTPP2::parse_template(char * szFileName)
 	}
 	catch(CTPPLogicError        & e)
 	{
-		croak("ERROR in parse_template(): %s\n", e.what());
+		croak("ERROR in parse_template(): %s", e.what());
 		return NULL;
 	}
 	catch(CTPPUnixException     & e)
 	{
-		croak("ERROR in parse_template(): I/O in %s: %s\n", e.what(), strerror(e.ErrNo()));
+		croak("ERROR in parse_template(): I/O in %s: %s", e.what(), strerror(e.ErrNo()));
 		return NULL;
 	}
 	catch(CTPPParserSyntaxError & e)
 	{
-		croak("ERROR in parse_template(): At line %d, pos. %d: %s\n", e.GetLine(), e.GetLinePos(), e.what());
+		croak("ERROR in parse_template(): At line %d, pos. %d: %s", e.GetLine(), e.GetLinePos(), e.what());
 		return NULL;
 	}
 	catch (CTPPParserOperatorsMismatch &e)
 	{
-		croak("ERROR in parse_template(): At line %d, pos. %d: expected %s, but found </%s>\n", e.GetLine(), e.GetLinePos(), e.Expected(), e.Found());
+		croak("ERROR in parse_template(): At line %d, pos. %d: expected %s, but found </%s>", e.GetLine(), e.GetLinePos(), e.Expected(), e.Found());
 		return NULL;
 	}
 	catch(...)
 	{
-		croak("ERROR in parse_template(): Bad thing happened.\n");
+		croak("ERROR in parse_template(): Bad thing happened.");
 		return NULL;
 	}
 return NULL;
@@ -613,7 +615,7 @@ SV * CTPP2::dump_params()
 	}
 	catch(...)
 	{
-		croak("ERROR in dump_params(): Bad thing happened.\n");
+		croak("ERROR in dump_params(): Bad thing happened.");
 	}
 return newSVpv("", 0);
 }
@@ -674,7 +676,7 @@ Bytecode::Bytecode(char * szFileName, int iFlag, const std::vector<std::string> 
 	{
 		// Load template
 		CTPP2FileSourceLoader oSourceLoader;
-        oSourceLoader.SetIncludeDirs(vIncludeDirs);
+		oSourceLoader.SetIncludeDirs(vIncludeDirs);
 		oSourceLoader.LoadTemplate(szFileName);
 
 		// Compiler runtime
@@ -713,7 +715,7 @@ int Bytecode::save(char * szFileName)
 {
 	// Open file only if compilation is done
 	FILE * FW = fopen(szFileName, "w");
-	if (FW == NULL) { croak("ERROR: Cannot open destination file `%s` for writing\n", szFileName); return -1; }
+	if (FW == NULL) { croak("ERROR: Cannot open destination file `%s` for writing", szFileName); return -1; }
 
 	// Write to the disc
 	(void)fwrite(pCore, iCoreSize, 1, FW);
@@ -736,7 +738,88 @@ Bytecode::~Bytecode() throw()
 MODULE = HTML::CTPP2		PACKAGE = HTML::CTPP2
 
 CTPP2 *
-CTPP2::new()
+CTPP2::new(...)
+    CODE:
+	UINT_32 iArgStackSize  = 10240;
+	UINT_32 iCodeStackSize = 10240;
+	UINT_32 iStepsLimit    = 1048576;
+	UINT_32 iMaxFunctions  = 1024;
+
+	if (items % 2 != 1)
+	{
+		croak("ERROR: new HTML::CTPP2() called with odd number of option parameters - should be of the form option => value");
+	}
+
+	for (INT_32 iI = 1; iI < items; iI+=2)
+	{
+		STRLEN iKeyLen = 0;
+		STRLEN iValLen = 0;
+
+		char * szKey   = NULL;
+		char * szValue = NULL;
+
+		long eSVType = SvTYPE(ST(iI));
+
+		switch (eSVType)
+		{
+			case SVt_IV:
+			case SVt_NV:
+			case SVt_RV:
+			case SVt_PV:
+			case SVt_PVIV:
+			case SVt_PVNV:
+			case SVt_PVMG:
+				szKey = SvPV(ST(iI), iKeyLen);
+				break;
+
+			default:
+				croak("ERROR: Parameter name expected");
+		}
+
+		eSVType = SvTYPE(ST(iI + 1));
+
+		switch (eSVType)
+		{
+			case SVt_IV:
+			case SVt_NV:
+			case SVt_RV:
+			case SVt_PV:
+			case SVt_PVIV:
+			case SVt_PVNV:
+			case SVt_PVMG:
+				szValue = SvPV(ST(iI + 1), iValLen);
+				break;
+			default:
+				croak("ERROR: Parameter name expected");
+		}
+		if (strncasecmp("arg_stack_size", szKey, iKeyLen) == 0)
+		{
+			sscanf(szValue, "%u", &iArgStackSize);
+			if (iArgStackSize == 0) { croak("ERROR: parameter 'arg_stack_size' should be > 0"); }
+		}
+		else if (strncasecmp("code_stack_size", szKey, iKeyLen) == 0)
+		{
+			sscanf(szValue, "%u", &iCodeStackSize);
+			if (iCodeStackSize == 0) { croak("ERROR: parameter 'code_stack_size' should be > 0"); }
+		}
+		else if (strncasecmp("steps_limit", szKey, iKeyLen) == 0)
+		{
+			sscanf(szValue, "%u", &iStepsLimit);
+			if (iStepsLimit == 0) { croak("ERROR: parameter 'steps_limit' should be > 0"); }
+		}
+		else if (strncasecmp("max_functions", szKey, iKeyLen) == 0)
+		{
+			sscanf(szValue, "%u", &iMaxFunctions);
+			if (iMaxFunctions == 0) { croak("ERROR: parameter 'max_functions' should be > 0"); }
+		}
+		else
+		{
+			croak("ERROR: Unknown parameter name: `%s`", szKey);
+		}
+	}
+	RETVAL = new CTPP2(iArgStackSize, iCodeStackSize, iStepsLimit, iMaxFunctions);
+    OUTPUT:
+	RETVAL
 
 void
 CTPP2::DESTROY()
