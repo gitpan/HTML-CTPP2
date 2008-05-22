@@ -13,7 +13,7 @@ require AutoLoader;
 
 );
 
-$VERSION = '2.1.1';
+$VERSION = '2.3.0';
 
 bootstrap HTML::CTPP2 $VERSION;
 
@@ -68,7 +68,7 @@ __END__;
 
   File `math_expr.tmpl`:
   <TMPL_var a> + <TMPL_var b> = <TMPL_var (a + b)>
-  <TMPL_if (age < 18 && age > 90)>Invalid age<TMPL_else>Age correct</TMPL_if> 
+  <TMPL_if (age < 18 && age > 90)>Invalid age<TMPL_else>Age correct</TMPL_if>
 
 =head1 DESCRIPTION
 
@@ -91,7 +91,7 @@ __END__;
   (for example __FIRST__) are reserved names and should NOT be used
   by the developer. Variable names can be composed of letters, numbers,
   and underscores (_). Every variable name in CTPP must start with a letter.
-  
+
   You can access subproperties (hash references to oher object) of variable by
   specifying it after variable name separated by dot '.': <TMPL_var foo.bar>.
 
@@ -102,7 +102,7 @@ __END__;
   In CTPP template engine two types of variables are defined: local and global.
   The sense of these two concepts is completely equal with a similar idea
   in the other algorithmic languages such as C++ & Perl.
-  
+
   For variable output use operator <TMPL_var VAR_NAME>
 
   Example 1.1
@@ -294,7 +294,7 @@ __END__;
   specifying this parameter.
 
   Note, if execution limit is reached, template engine generates error
-  and you should use eval {} to catch it. 
+  and you should use eval {} to catch it.
 
 =head2 param() - set some parameters
 
@@ -306,6 +306,10 @@ __END__;
   $T -> clear_params();
   or
   $T -> reset();
+
+=head2 json_param($JSON) - set some parameters
+
+  $T -> json_param('{ "foo": "bar", "baz" : 123}');
 
 =head2 output() - returns output as string
 
@@ -357,6 +361,18 @@ __END__;
   functions in C++.
 
   $T -> load_udf('/shared/library/name.so', 'UserDefinedFunctionName');
+
+=head2 get_last_error() - get human-readable error description
+
+  Your can get detailed description if any error occured. Method return a hash
+  with set of following keys:
+
+  'template_name' - template file name where error occured
+  'line'          - line in template file
+  'pos'           - position in file
+  'ip'            - virtual machine instruction pointer
+  'error_code'    - error code, integer munber
+  'error_str'     - human-readable error description
 
 =head1 AUTHOR
 

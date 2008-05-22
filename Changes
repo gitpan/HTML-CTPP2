@@ -1,5 +1,8 @@
 Revision history for Perl extension HTML::CTPP2.
 
+2.1.2  Thu Apr 24 16:40:00 2008
+	- New method: json_param
+
 2.1.1  Thu Mar 20 15:36:00 2008
 	- Bug fixes, exparessions in <TMPL_if and in <TMPL_var 
 

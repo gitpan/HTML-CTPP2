@@ -12,6 +12,9 @@ t/HTML-CTPP2.t
 t/test01.t
 t/test02.t
 t/test03.t
+t/test04.t
+t/test05.t
+t/test06.t
 lib/HTML/CTPP2.pm
 examples/example1.tmpl
 examples/example10.tmpl
@@ -31,6 +34,10 @@ examples/example8.tmpl
 examples/example9.tmpl
 examples/footer.tmpl
 examples/header.tmpl
+examples/logic-error.tmpl
 examples/middle.tmpl
+examples/runtime-error.tmpl
+examples/syntax-error.tmpl
 examples/testdata.json
+examples/testjson.json
 examples/transmap.tmpl
