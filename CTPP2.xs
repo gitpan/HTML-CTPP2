@@ -76,12 +76,15 @@ extern "C" {
 #define CTPP_LOGIC_ERROR                    0x00000003
 #define CTPP_UNKNOWN_ERROR                  0x00000002
 #define STL_UNKNOWN_ERROR                   0x00000001
-
+#else
+using CTPP::CTPPError;
 #endif // Workaround for old CTPP versions
 
 
 // FWD
 class Bytecode;
+
+#ifndef CTPP_ERROR_CODE_MASK
 
 /**
   @struct CTPPError m_ctpp.hpp <m_ctpp.hpp>
@@ -125,6 +128,7 @@ struct CTPPError
 		;;
 	}
 };
+#endif // Workaround for old CTPP versions
 
 //
 // CTPP2 main object

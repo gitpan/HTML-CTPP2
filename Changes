@@ -1,5 +1,8 @@
 Revision history for Perl extension HTML::CTPP2.
 
+2.3.6  Tue Aug 12 16:40:00 2008
+	- Fixes for new library version
+
 2.1.2  Thu Apr 24 16:40:00 2008
 	- New method: json_param
 
