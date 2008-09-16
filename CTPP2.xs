@@ -526,6 +526,7 @@ return iOK;
 int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const std::string & sKey, int iPrevIsHash, int & iProcessed)
 {
 	iProcessed = 0;
+	if (pParams == NULL) { return 0; }
 	long eSVType = SvTYPE(pParams);
 
 	switch (eSVType)
