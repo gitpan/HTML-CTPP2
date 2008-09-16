@@ -599,6 +599,7 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 		case SVt_PVHV:
 			{
 				HV * pHash = (HV*)(pParams);
+				hv_iterinit(pHash);
 				HE * pHashEntry = NULL;
 				// If prevoius level is array, do nothing
 				if (iPrevIsHash == C_PREV_LEVEL_IS_UNKNOWN)
@@ -610,17 +611,20 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 						I32 iKeyLen = 0;
 						char * szKey  = hv_iterkey(pHashEntry, &iKeyLen);
 						SV   * pValue = hv_iterval(pHash, pHashEntry);
-						std::string sTMPKey(szKey, iKeyLen);
+						if (pValue != NULL)
+						{
+							std::string sTMPKey(szKey, iKeyLen);
 
-						CTPP::CDT oTMP;
-						param(pValue, &oTMP, pUplinkCDT, sTMPKey, C_PREV_LEVEL_IS_HASH, iProcessed);
-						if (iProcessed == 0)
-						{
-							pCDT -> operator[](sTMPKey) = oTMP;
-						}
-						else
-						{
-							pCDT -> operator[](sTMPKey) = 1;
+							CTPP::CDT oTMP;
+							param(pValue, &oTMP, pUplinkCDT, sTMPKey, C_PREV_LEVEL_IS_HASH, iProcessed);
+							if (iProcessed == 0)
+							{
+								pCDT -> operator[](sTMPKey) = oTMP;
+							}
+							else
+							{
+								pCDT -> operator[](sTMPKey) = 1;
+							}
 						}
 					}
 				}
