@@ -541,7 +541,13 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 			break;
 		// 2
 		case SVt_NV:
+#if ((PERL_API_VERSION == 8) || (PERL_API_VERSION == 6))
 			pCDT -> operator=( W_FLOAT( ((xpvnv *)(pParams -> sv_any)) -> xnv_nv ) );
+#elif (PERL_API_VERSION == 10)
+			pCDT -> operator=( W_FLOAT( ((xpvnv *)(pParams -> sv_any)) -> xnv_u.xnv_nv ) );
+#else
+    #error "This version of perl not supported yet!"
+#endif
 			break;
 		// 3
 		case SVt_RV:
@@ -562,7 +568,17 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 		// 7
 		case SVt_PVMG:
 				if      (SvIOK(pParams)) { pCDT -> operator=( INT_64( ((xpviv *)(pParams -> sv_any)) -> xiv_iv ) ); }
-				else if (SvNOK(pParams)) { pCDT -> operator=( W_FLOAT( ((xpvnv *)(pParams -> sv_any)) -> xnv_nv ) ); }
+				else if (SvNOK(pParams))
+				{
+#if ((PERL_API_VERSION == 8) || (PERL_API_VERSION == 6))
+					pCDT -> operator=( W_FLOAT( ((xpvnv *)(pParams -> sv_any)) -> xnv_nv ) );
+#elif (PERL_API_VERSION == 10)
+					pCDT -> operator=( W_FLOAT( ((xpvnv *)(pParams -> sv_any)) -> xnv_u.xnv_nv ) );
+#else
+    #error "This version of perl not supported yet!"
+#endif
+
+				}
 				else if (SvPOK(pParams))
 				{
 					STRLEN iLen;
@@ -571,9 +587,11 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 				}
 			break;
 		// 8
+#if ((PERL_API_VERSION == 8) || (PERL_API_VERSION == 6))
 		case SVt_PVBM:
 			pCDT -> operator=(std::string("*PVBM*", 6)); // Stub!
 			break;
+#endif
 		// 9
 		case SVt_PVLV:
 			pCDT -> operator=(std::string("*PVLV*", 6)); // Stub!
@@ -582,6 +600,8 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 		case SVt_PVAV:
 			{
 				AV * pArray = (AV *)(pParams);
+				if (pArray == NULL) { return 0; }
+
 				I32 iArraySize = av_len(pArray);
 				int iTMPProcessed = 0;
 				if (pCDT -> GetType() != CTPP::CDT::ARRAY_VAL) { pCDT -> operator=(CTPP::CDT(CTPP::CDT::ARRAY_VAL)); }

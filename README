@@ -1,5 +1,5 @@
-HTML-CTPP2 version 2.3.6
-========================
+HTML-CTPP2 version 2.3.11
+=========================
 
 HTML::CTPP2 - Perl interface for CTPP2 library
 
@@ -21,7 +21,7 @@ To install this module type the following:
 
 DEPENDENCIES
 
-This module requires installed CTPP2 library version 2.3.0 or higher.
+This module requires installed CTPP2 library version 2.3.10 or higher.
 You can download it here: http://ctpp.havoc.ru/download/
 To install CTPP2 library type the following:
 

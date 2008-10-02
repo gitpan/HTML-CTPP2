@@ -1,5 +1,11 @@
 Revision history for Perl extension HTML::CTPP2.
 
+2.3.11 Tue Sep 30 15:12:00 2008
+	- Port to Perl 5.10.0
+
+2.3.10 Tue Sep 16 13:00:00 2008
+	- Fixes in hash iteration
+
 2.3.9  Tue Sep 16 13:00:00 2008
 	- Fixes in hash iteration
 
@@ -10,7 +16,7 @@ Revision history for Perl extension HTML::CTPP2.
 	- New method: json_param
 
 2.1.1  Thu Mar 20 15:36:00 2008
-	- Bug fixes, exparessions in <TMPL_if and in <TMPL_var 
+	- Bug fixes, expressions in <TMPL_if and in <TMPL_var 
 
 2.0.5  Tue Feb 27 16:51:00 2008
 	- Access to subproperties, need CTPP version 2.0.5 or later.
