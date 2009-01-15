@@ -13,7 +13,7 @@ require AutoLoader;
 
 );
 
-$VERSION = '2.3.11';
+$VERSION = '2.4.1';
 
 bootstrap HTML::CTPP2 $VERSION;
 
@@ -232,6 +232,19 @@ __END__;
   All characters between <TMPL_comment> and </TMPL_comment> are ignored. This is
   useful to comment some parts of template.
 
+=head2 TMPL_block, TMPL_call
+
+  You can declare a block of code and call it by name:
+  Example 4.1:
+  <TMPL_block "foo"> <!-- Declare block with name "foo" -->
+      ... some foo's HTML and CTPP operators here ...
+  </TMPL_block>
+  <TMPL_block "bar"> <!-- Declare block with name "bar" -->
+      ... some other HTML and/or CTPP operators here ...
+  </TMPL_block>
+
+  <TMPL_call block> <!-- Call block by name -->
+
 =head2 Built-in functions
 
   There are a variety of situations when you need to represent data according
@@ -248,22 +261,27 @@ __END__;
 
   CTPP2 support following built-in functions:
 
-    * URLESCAPE
-    * HTMLESCAPE
-    * XMLESCAPE
-    * NUM_FORMAT
-    * GETTEXT (_)
-    * IN_SET
-    * HREF_PARAM
-    * FORM_PARAM
-    * DATE_FORMAT
     * BASE64_ENCODE
     * BASE64_DECODE
-    * MD5
-    * ICONV
-    * VERSION
-    * OBJ_DUMP
     * CAST
+    * DATE_FORMAT
+    * DEFAULT
+    * DEFINED
+    * FORM_PARAM
+    * GETTEXT (_)
+    * HREF_PARAM
+    * HTMLESCAPE
+    * ICONV
+    * IN_SET
+    * JSESCAPE
+    * JSON
+    * MD5
+    * NUM_FORMAT
+    * OBJ_DUMP
+    * SIZE
+    * URLESCAPE
+    * VERSION
+    * XMLESCAPE
 
   Please refer to CTPP2 library documentation to get detailed
   information about these functions.
@@ -388,7 +406,7 @@ http://ctpp.havoc.ru/
 
 =head1 LICENSE
 
-  Copyright (c) 2006 - 2008 CTPP Team
+  Copyright (c) 2006 - 2009 CTPP Team
 
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions

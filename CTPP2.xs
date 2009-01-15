@@ -954,7 +954,8 @@ Bytecode::Bytecode(char * szFileName, int iFlag, const std::vector<std::string> 
 		StaticText         oSyscalls;
 		StaticData         oStaticData;
 		StaticText         oStaticText;
-		CTPP2Compiler oCompiler(oVMOpcodeCollector, oSyscalls, oStaticData, oStaticText);
+		HashTable          oHashTable;
+		CTPP2Compiler oCompiler(oVMOpcodeCollector, oSyscalls, oStaticData, oStaticText, oHashTable);
 
 		// Create template parser
 		CTPP2Parser oCTPP2Parser(&oSourceLoader, &oCompiler, szFileName);
@@ -967,7 +968,7 @@ Bytecode::Bytecode(char * szFileName, int iFlag, const std::vector<std::string> 
 		const VMInstruction * oVMInstruction = oVMOpcodeCollector.GetCode(iCodeSize);
 
 		// Dump program
-		VMDumper oDumper(iCodeSize, oVMInstruction, oSyscalls, oStaticData, oStaticText);
+		VMDumper oDumper(iCodeSize, oVMInstruction, oSyscalls, oStaticData, oStaticText, oHashTable);
 		const VMExecutable * aProgramCore = oDumper.GetExecutable(iCoreSize);
 
 		// Allocate memory

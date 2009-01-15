@@ -1,13 +1,13 @@
-HTML-CTPP2 version 2.3.11
-=========================
+HTML-CTPP2 version 2.4.1
+========================
 
 HTML::CTPP2 - Perl interface for CTPP2 library
 
 This module is very similar to well-known Sam Tregar's HTML::Template but works
 in 22 - 25 times faster and provides extra functionality.
 CTPP2 template language dialect contains 9 operators: <TMPL_var>, <TMPL_if>,
-<TMPL_elsif>, <TMPL_else>, <TMPL_unless>, <TMPL_loop>, <TMPL_udf>, <TMPL_include>
-and <TMPL_comment>.
+<TMPL_elsif>, <TMPL_else>, <TMPL_unless>, <TMPL_loop>, <TMPL_udf>, <TMPL_include>,
+<TMPL_comment>, <TMPL_call> and <TMPL_block>.
 
 
 INSTALLATION
@@ -21,7 +21,7 @@ To install this module type the following:
 
 DEPENDENCIES
 
-This module requires installed CTPP2 library version 2.3.10 or higher.
+This module requires installed CTPP2 library version 2.4.1 or higher.
 You can download it here: http://ctpp.havoc.ru/download/
 To install CTPP2 library type the following:
 
@@ -40,7 +40,7 @@ see http://www.cmake.org/
 
 COPYRIGHT AND LICENCE
 
-  Copyright (c) 2006 - 2008 CTPP Team
+  Copyright (c) 2006 - 2009 CTPP Team
 
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions
