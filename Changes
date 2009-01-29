@@ -1,5 +1,8 @@
 Revision history for Perl extension HTML::CTPP2.
 
+2.4.2  Thu Jan 29 13:46:00 2008
+	- Fixes in array iterator and error reporting
+
 2.4.1  Thu Jan 15 15:15:00 2008
 	- Fixes for new library version
 

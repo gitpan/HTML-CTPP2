@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2006 - 2008 CTPP Team
+ * Copyright (c) 2006 - 2009 CTPP Team
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,88 +47,10 @@ extern "C" {
 
 #include <dlfcn.h>
 
-#ifndef CTPP_ERROR_CODE_MASK
-
-#define CTPP_ERROR_CODE_MASK                0x00FFFFFF
-#define CTPP_ERROR_SUBSYSTEM_MASK           0xFF000000
-
-#define CTPP_DATA_ERROR                     0x01000000
-#define CTPP_VM_ERROR                       0x02000000
-#define CTPP_COMPILER_ERROR                 0x04000000
-
-#define CTPP_OPERATORS_MISMATCH_ERROR       0x00000012
-#define CTPP_SYNTAX_ERROR                   0x00000011
-#define CTPP_PARSER_ERROR                   0x00000010
-
-#define CTPP_ZERO_DIVISION_ERROR            0x0000000F
-#define CTPP_EXECUTION_LIMIT_REACHED_ERROR  0x0000000E
-#define CTPP_CODE_SEGMENT_OVERRUN_ERROR     0x0000000D
-#define CTPP_INVALID_SYSCALL_ERROR          0x0000000C
-#define CTPP_ILLEGAL_OPCODE_ERROR           0x0000000B
-#define CTPP_STACK_OVERFLOW_ERROR           0x0000000A
-#define CTPP_STACK_UNDERFLOW_ERROR          0x00000009
-#define CTPP_VM_GENERIC_ERROR               0x00000008
-#define CTPP_UNIX_ERROR                     0x00000007
-
-#define CTPP_RANGE_ERROR                    0x00000006
-#define CTPP_ACCESS_ERROR                   0x00000005
-#define CTPP_TYPE_CAST_ERROR                0x00000004
-#define CTPP_LOGIC_ERROR                    0x00000003
-#define CTPP_UNKNOWN_ERROR                  0x00000002
-#define STL_UNKNOWN_ERROR                   0x00000001
-#else
 using CTPP::CTPPError;
-#endif // Workaround for old CTPP versions
-
 
 // FWD
 class Bytecode;
-
-#ifndef CTPP_ERROR_CODE_MASK
-
-/**
-  @struct CTPPError m_ctpp.hpp <m_ctpp.hpp>
-  @brief CTPP Error description
-*/
-struct CTPPError
-{
-	/** Template name                        */
-	std::string   template_name;
-	/** Human-readable error description     */
-	std::string   error_descr;
-	/** Error code                           */
-	UINT_32       error_code;
-	/** Line, where error occured            */
-	UINT_32       line;
-	/** Position in line where error occured */
-	UINT_32       pos;
-	/** Instruction pointer                  */
-	UINT_32       ip;
-
-	/**
-	  @brief Constructor
-	  @param sErrorDescr - Error description
-	  @param iErrrorCode - Error code
-	  @param iLine - Line in template, where error occured
-	  @param iPos - Position in line, where error occured
-	  @param iIP - Instrction pointer
-	*/
-	CTPPError(const std::string  & sTemplateName  = "",
-		  const std::string  & sErrorDescr  = "",
-		  const UINT_32      & iErrrorCode  = 0,
-		  const UINT_32      & iLine        = 0,
-		  const UINT_32      & iPos         = 0,
-		  const UINT_32      & iIP          = 0): template_name(sTemplateName),
-		                                          error_descr(sErrorDescr),
-		                                          error_code(iErrrorCode),
-		                                          line(iLine),
-		                                          pos(iPos),
-		                                          ip(iIP)
-	{
-		;;
-	}
-};
-#endif // Workaround for old CTPP versions
 
 //
 // CTPP2 main object
@@ -483,8 +405,18 @@ int CTPP2::json_param(SV * pParams)
 	// Error occured
 	if (iOK == -1)
 	{
-		warn("json_param(): %s (error code 0x%08X)", oCTPPError.error_descr.c_str(),
-		                                             oCTPPError.error_code);
+		if (oCTPPError.line != 0)
+		{
+			warn("json_param(): %s (error code 0x%08X) at line %d pos %d", oCTPPError.error_descr.c_str(),
+			                                                               oCTPPError.error_code,
+			                                                               oCTPPError.line,
+			                                                               oCTPPError.pos);
+		}
+		else
+		{
+			warn("json_param(): %s (error code 0x%08X)", oCTPPError.error_descr.c_str(),
+			                                             oCTPPError.error_code);
+		}
 	}
 
 return iOK;
@@ -611,7 +543,7 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 
 					CTPP::CDT oTMP;
 					// Recursive descend
-					param(*pArrElement, &oTMP, &oTMP, sKey, C_PREV_LEVEL_IS_UNKNOWN, iTMPProcessed);
+					if (pArrElement != NULL) { param(*pArrElement, &oTMP, &oTMP, sKey, C_PREV_LEVEL_IS_UNKNOWN, iTMPProcessed); }
 					pCDT -> operator[](iI) = oTMP;
 				}
 			}
@@ -747,9 +679,21 @@ SV * CTPP2::output(Bytecode * pBytecode)
 	catch (...)                        { oCTPPError = CTPPError("", "Unknown Error", CTPP_VM_ERROR | STL_UNKNOWN_ERROR,           0, 0, iIP); }
 
 	// Error occured
-	warn("output(): %s (error code 0x%08X); IP: 0x%08X", oCTPPError.error_descr.c_str(),
-	                                                     oCTPPError.error_code,
-	                                                     oCTPPError.ip);
+	if (oCTPPError.line != 0)
+	{
+		warn("output(): %s (error code 0x%08X); IP: 0x%08X, file %s line %d pos %d", oCTPPError.error_descr.c_str(),
+		                                                                             oCTPPError.error_code,
+		                                                                             oCTPPError.ip,
+		                                                                             oCTPPError.template_name.c_str(),
+		                                                                             oCTPPError.line,
+		                                                                             oCTPPError.pos);
+	}
+	else
+	{
+		warn("output(): %s (error code 0x%08X); IP: 0x%08X", oCTPPError.error_descr.c_str(),
+		                                                     oCTPPError.error_code,
+		                                                     oCTPPError.ip);
+	}
 return newSVpv("", 0);
 }
 
@@ -850,8 +794,11 @@ Bytecode * CTPP2::parse_template(char * szFileName)
 	catch (...)                              { oCTPPError = CTPPError(szFileName, "Unknown Error", CTPP_COMPILER_ERROR | STL_UNKNOWN_ERROR,           0, 0, 0); }
 
 	// Error occured
-	warn("parse_template(): %s (error code 0x%08X)", oCTPPError.error_descr.c_str(),
-	                                                 oCTPPError.error_code);
+	warn("parse_template(): In file %s at line %d, pos %d: %s (error code 0x%08X)", oCTPPError.template_name.c_str(),
+	                                                                                oCTPPError.line,
+	                                                                                oCTPPError.pos,
+	                                                                                oCTPPError.error_descr.c_str(),
+	                                                                                oCTPPError.error_code);
 
 return NULL;
 }

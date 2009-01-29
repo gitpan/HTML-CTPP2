@@ -1,11 +1,11 @@
-HTML-CTPP2 version 2.4.1
+HTML-CTPP2 version 2.4.2
 ========================
 
 HTML::CTPP2 - Perl interface for CTPP2 library
 
 This module is very similar to well-known Sam Tregar's HTML::Template but works
 in 22 - 25 times faster and provides extra functionality.
-CTPP2 template language dialect contains 9 operators: <TMPL_var>, <TMPL_if>,
+CTPP2 template language dialect contains 11 operators: <TMPL_var>, <TMPL_if>,
 <TMPL_elsif>, <TMPL_else>, <TMPL_unless>, <TMPL_loop>, <TMPL_udf>, <TMPL_include>,
 <TMPL_comment>, <TMPL_call> and <TMPL_block>.
 
