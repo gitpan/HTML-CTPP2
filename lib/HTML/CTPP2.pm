@@ -13,7 +13,7 @@ require AutoLoader;
 
 );
 
-$VERSION = '2.4.2';
+$VERSION = '2.4.6';
 
 bootstrap HTML::CTPP2 $VERSION;
 
@@ -261,26 +261,33 @@ __END__;
 
   CTPP2 support following built-in functions:
 
-    * BASE64_ENCODE
-    * BASE64_DECODE
-    * CAST
-    * DATE_FORMAT
-    * DEFAULT
-    * DEFINED
-    * FORM_PARAM
-    * GETTEXT (_)
-    * HREF_PARAM
-    * HTMLESCAPE
-    * ICONV
-    * IN_SET
-    * JSESCAPE
-    * JSON
-    * MD5
-    * NUM_FORMAT
-    * OBJ_DUMP
-    * SIZE
-    * URLESCAPE
-    * VERSION
+    * AVG 
+    * BASE64_ENCODE 
+    * BASE64_DECODE 
+    * CAST 
+    * DATE_FORMAT 
+    * DEFAULT 
+    * DEFINED 
+    * FORM_PARAM 
+    * GETTEXT (_) 
+    * HMAC_MD5 
+    * HREF_PARAM 
+    * HTMLESCAPE 
+    * ICONV 
+    * IN_SET 
+    * JSESCAPE 
+    * JSON 
+    * LOG 
+    * MD5 
+    * MAX 
+    * MIN 
+    * NUM_FORMAT 
+    * OBJ_DUMP 
+    * RANDOM 
+    * SIZE 
+    * URIESCAPE 
+    * URLESCAPE 
+    * VERSION 
     * XMLESCAPE
 
   Please refer to CTPP2 library documentation to get detailed
@@ -295,24 +302,33 @@ __END__;
   my $T = new HTML::CTPP2();
 
   You can also change some internal variables of CTPP engine:
-  my $T = new HTML::CTPP2(arg_stack_size  => 1024,
-                          code_stack_size => 1024,
-                          steps_limit     => 10240,
-                          max_functions   => 1024);
+  my $T = new HTML::CTPP2(arg_stack_size      => 1024,
+                          code_stack_size     => 1024,
+                          steps_limit         => 10240,
+                          max_functions       => 1024,
+                          source_charset      => 'CP1251',
+                          destination_charset => 'utf-8');
 
   'arg_stack_size'  - Max. size of stack of arguments
   'code_stack_size' - Max. stack size
   'max_functions'   - Max. number of functions in CTPP standard library
 
-  Normally you should now change these parameters, to explanation please
+  Normally you should not change these parameters, to explanation please
   refer to CTPP library documentation.
+
+  'source_charset'  - source charcter set
+  'destination_charset' - destination character set.
+
+  Use these options for on-the-fly charset converting of template
+  output.
 
   'steps_limit' - template execution limit (in steps). Default value
   is 1 048 576 (1024*1024). You can limit template execution time by
   specifying this parameter.
 
   Note, if execution limit is reached, template engine generates error
-  and you should use eval {} to catch it.
+  (returm avlue of method `output` is undef, and you should use
+  `get_last_error` method to get full error description.
 
 =head2 param() - set some parameters
 

@@ -59,7 +59,12 @@ class CTPP2
 {
 public:
 	// Constructor
-	CTPP2(const UINT_32 & iArgStackSize, const UINT_32 & iCodeStackSize, const UINT_32 & iStepsLimit, const UINT_32 & iMaxFunctions);
+	CTPP2(const UINT_32      & iArgStackSize,
+	      const UINT_32      & iCodeStackSize,
+	      const UINT_32      & iStepsLimit,
+	      const UINT_32      & iMaxFunctions,
+	      const std::string  & sSourceCharset,
+	      const std::string  & sDestCharset);
 
 	// Destructor
 	~CTPP2() throw();
@@ -140,7 +145,12 @@ private:
 	std::vector<std::string>             vIncludeDirs;
 	// Error Description
 	CTPPError                            oCTPPError;
-
+	// Source charset
+	std::string                          sSrcEnc;
+	// Destination charset
+	std::string                          sDstEnc;
+	// Use charset recoder or not
+	bool                                 bUseRecoder;
 	// Parse given parameters
 	int param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const std::string & sKey, int iPrevIsHash, int & iProcessed);
 
@@ -191,10 +201,12 @@ private:
 //
 // Constructor
 //
-CTPP2::CTPP2(const UINT_32  & iArgStackSize,
-             const UINT_32  & iCodeStackSize,
-             const UINT_32  & iStepsLimit,
-             const UINT_32  & iMaxFunctions): pCDT(NULL), pSyscallFactory(NULL), pVM(NULL)
+CTPP2::CTPP2(const UINT_32      & iArgStackSize,
+             const UINT_32      & iCodeStackSize,
+             const UINT_32      & iStepsLimit,
+             const UINT_32      & iMaxFunctions,
+             const std::string  & sSourceCharset,
+             const std::string  & sDestCharset): pCDT(NULL), pSyscallFactory(NULL), pVM(NULL)
 {
 	using namespace CTPP;
 	try
@@ -204,6 +216,14 @@ CTPP2::CTPP2(const UINT_32  & iArgStackSize,
 		STDLibInitializer::InitLibrary(*pSyscallFactory);
 
 		pVM             = new VM(*pSyscallFactory, iArgStackSize, iCodeStackSize, iStepsLimit);
+
+		if (sSourceCharset.size() && sDestCharset.size())
+		{
+			sSrcEnc = sSourceCharset;
+			sDstEnc = sDestCharset;
+			bUseRecoder = true;
+		}
+		else { bUseRecoder = false; }
 	}
 	catch(...)
 	{
@@ -644,10 +664,19 @@ SV * CTPP2::output(Bytecode * pBytecode)
 	try
 	{
 		std::string sResult;
-		StringOutputCollector oOutputCollector(sResult);
 
-		pVM -> Init(oOutputCollector, *(pBytecode -> pVMMemoryCore));
-		pVM -> Run(*(pBytecode -> pVMMemoryCore), iIP, *pCDT);
+		if (bUseRecoder)
+		{
+			StringIconvOutputCollector oOutputCollector(sResult, sSrcEnc, sDstEnc);
+			pVM -> Init(oOutputCollector, *(pBytecode -> pVMMemoryCore));
+			pVM -> Run(*(pBytecode -> pVMMemoryCore), iIP, *pCDT);
+		}
+		else
+		{
+			StringOutputCollector oOutputCollector(sResult);
+			pVM -> Init(oOutputCollector, *(pBytecode -> pVMMemoryCore));
+			pVM -> Run(*(pBytecode -> pVMMemoryCore), iIP, *pCDT);
+		}
 
 		return newSVpv(sResult.data(), sResult.length());
 	}
@@ -674,6 +703,12 @@ SV * CTPP2::output(Bytecode * pBytecode)
 	catch (CDTAccessException     & e) { oCTPPError = CTPPError("", e.what(), CTPP_VM_ERROR | CTPP_ACCESS_ERROR,                  0, 0, iIP); }
 	catch (CDTTypeCastException   & e) { oCTPPError = CTPPError("", e.what(), CTPP_VM_ERROR | CTPP_TYPE_CAST_ERROR,               0, 0, iIP); }
 	catch (CTPPLogicError         & e) { oCTPPError = CTPPError("", e.what(), CTPP_VM_ERROR | CTPP_LOGIC_ERROR,                   0, 0, iIP); }
+
+	catch(CTPPCharsetRecodeException &e)
+	{
+		oCTPPError = CTPPError("", e.what(), CTPP_VM_ERROR | CTPP_CHARSET_RECODE_ERROR, 0, 0, 0);
+	}
+
 	catch (CTPPException          & e) { oCTPPError = CTPPError("", e.what(), CTPP_VM_ERROR | CTPP_UNKNOWN_ERROR,                 0, 0, iIP); }
 	catch (std::exception         & e) { oCTPPError = CTPPError("", e.what(), CTPP_VM_ERROR | STL_UNKNOWN_ERROR,                  0, 0, iIP); }
 	catch (...)                        { oCTPPError = CTPPError("", "Unknown Error", CTPP_VM_ERROR | STL_UNKNOWN_ERROR,           0, 0, iIP); }
@@ -961,6 +996,8 @@ CTPP2::new(...)
 	UINT_32 iCodeStackSize = 10240;
 	UINT_32 iStepsLimit    = 1048576;
 	UINT_32 iMaxFunctions  = 1024;
+	std::string sSrcEnc;
+	std::string sDstEnc;
 
 	if (items % 2 != 1)
 	{
@@ -1029,12 +1066,20 @@ CTPP2::new(...)
 			sscanf(szValue, "%u", &iMaxFunctions);
 			if (iMaxFunctions == 0) { croak("ERROR: parameter 'max_functions' should be > 0"); }
 		}
+		else if (strncasecmp("source_charset", szKey, iKeyLen) == 0)
+		{
+			sSrcEnc = szValue;
+		}
+		else if (strncasecmp("destination_charset", szKey, iKeyLen) == 0)
+		{
+			sDstEnc = szValue;
+		}
 		else
 		{
 			croak("ERROR: Unknown parameter name: `%s`", szKey);
 		}
 	}
-	RETVAL = new CTPP2(iArgStackSize, iCodeStackSize, iStepsLimit, iMaxFunctions);
+	RETVAL = new CTPP2(iArgStackSize, iCodeStackSize, iStepsLimit, iMaxFunctions, sSrcEnc, sDstEnc);
     OUTPUT:
 	RETVAL
 

@@ -1,5 +1,8 @@
 Revision history for Perl extension HTML::CTPP2.
 
+2.4.6  Mon Mar  9 18:26:00 2008
+	- On-the-fly charset recoder
+
 2.4.2  Thu Jan 29 13:46:00 2008
 	- Fixes in array iterator and error reporting
 
