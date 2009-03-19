@@ -1,5 +1,8 @@
 Revision history for Perl extension HTML::CTPP2.
 
+2.4.7  Mon Mar 16 15:50:00 2009
+	- On-the-fly charset recoder, improved version
+
 2.4.6  Mon Mar  9 18:26:00 2008
 	- On-the-fly charset recoder
 
@@ -25,7 +28,7 @@ Revision history for Perl extension HTML::CTPP2.
 	- New method: json_param
 
 2.1.1  Thu Mar 20 15:36:00 2008
-	- Bug fixes, expressions in <TMPL_if and in <TMPL_var 
+	- Bug fixes, expressions in <TMPL_if and in <TMPL_var
 
 2.0.5  Tue Feb 27 16:51:00 2008
 	- Access to subproperties, need CTPP version 2.0.5 or later.

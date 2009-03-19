@@ -13,12 +13,9 @@ require AutoLoader;
 
 );
 
-$VERSION = '2.4.6';
+$VERSION = '2.4.7';
 
 bootstrap HTML::CTPP2 $VERSION;
-
-push @HTML::Template::ISA,       qw/HTML::CTPP2/;
-push @HTML::Template::Expr::ISA, qw/HTML::CTPP2/;
 
 # Autoload methods go after =cut, and are processed by the autosplit program.
 1;
@@ -56,6 +53,10 @@ __END__;
   $T -> param(\%H);
 
   my $Result = $T -> output($Bytecode);
+  or
+  my $SourceCharset = 'iso-8859-5';
+  my $SestinationCharset = 'utf-8';
+  my $Result = $T -> output($Bytecode, $SourceCharset, $DestinationCharset);
 
   Now check output:
   Foo: bar
@@ -350,6 +351,13 @@ __END__;
   In most situations you can print this directly to standard output:
 
   print $T -> output($bytecode);
+
+  or
+
+  my $SourceCharset = 'iso-8859-5';
+  my $SestinationCharset = 'utf-8';
+  my $Result = $T -> output($Bytecode, $SourceCharset, $DestinationCharset);
+
 
 =head2 include_dirs() - set list of include directories
 

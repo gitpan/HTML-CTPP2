@@ -1,4 +1,3 @@
-t
 t/HTML-CTPP2.t
 t/test01.t
 t/test02.t
@@ -7,10 +6,7 @@ t/test04.t
 t/test05.t
 t/test06.t
 t/test07.t
-lib
-lib/HTML
 lib/HTML/CTPP2.pm
-examples
 examples/runtime-error.tmpl
 examples/testjson.json
 examples/testdata.json

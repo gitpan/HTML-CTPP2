@@ -82,7 +82,9 @@ public:
 	int json_param(SV * pParams);
 
 	// Get output
-	SV * output(Bytecode * pBytecode);
+	SV * output(Bytecode     * pBytecode,
+	            std::string    sSourceCharset,
+	            std::string    sDestCharset);
 
 	// Include directories
 	int include_dirs(SV * aIncludeDirs);
@@ -655,7 +657,9 @@ return 0;
 //
 // Output
 //
-SV * CTPP2::output(Bytecode * pBytecode)
+SV * CTPP2::output(Bytecode     * pBytecode,
+                   std::string    sSourceCharset,
+                   std::string    sDestCharset)
 {
 	using namespace CTPP;
 
@@ -667,7 +671,13 @@ SV * CTPP2::output(Bytecode * pBytecode)
 
 		if (bUseRecoder)
 		{
-			StringIconvOutputCollector oOutputCollector(sResult, sSrcEnc, sDstEnc);
+			if (sSourceCharset.empty()) { sSourceCharset = sSrcEnc; }
+			if (sDestCharset.empty())   { sDestCharset   = sDstEnc; }
+		}
+
+		if (!sSourceCharset.empty() && !sDestCharset.empty())
+		{
+			StringIconvOutputCollector oOutputCollector(sResult, sSourceCharset, sDestCharset, 3);
 			pVM -> Init(oOutputCollector, *(pBytecode -> pVMMemoryCore));
 			pVM -> Run(*(pBytecode -> pVMMemoryCore), iIP, *pCDT);
 		}
@@ -1102,7 +1112,42 @@ int
 CTPP2::json_param(SV * pParams)
 
 SV *
-CTPP2::output(Bytecode * pBytecode)
+CTPP2::output(...)
+    CODE:
+	Bytecode     * pBytecode = NULL;
+	std::string    sSrcEnc;
+	std::string    sDstEnc;
+
+	if (items != 2 && items != 4)
+	{
+		croak("ERROR: should be called as output($bytecode) or output($bytecode, $src_charset, $dst_charset)");
+	}
+
+	if( sv_isobject(ST(1)) && (SvTYPE(SvRV(ST(1))) == SVt_PVMG) )
+	{
+		pBytecode = (Bytecode *)SvIV((SV*)SvRV( ST(1) ));
+	}
+	else
+	{
+		warn( "HTML::CTPP2::output($bytecode ... -- $bytecode is not a blessed SV reference" );
+		XSRETURN_UNDEF;
+	};
+
+	if (items == 4)
+	{
+		STRLEN    iKeyLen = 0;
+		char    * szKey   = SvPV(ST(2), iKeyLen);
+		if (szKey == NULL || iKeyLen == 0) { croak("ERROR: incorrect source encoding"); }
+		sSrcEnc.assign(szKey, iKeyLen);
+
+		iKeyLen = 0;
+		szKey   = SvPV(ST(3), iKeyLen);
+		if (szKey == NULL || iKeyLen == 0) { croak("ERROR: incorrect destination encoding"); }
+		sDstEnc.assign(szKey, iKeyLen);
+	}
+	RETVAL = THIS -> output(pBytecode, sSrcEnc, sDstEnc);
+    OUTPUT:
+	RETVAL
 
 int
 CTPP2::include_dirs(SV * aIncludeDirs)
