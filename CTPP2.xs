@@ -510,9 +510,12 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 		// 4
 		case SVt_PV:
 			{
-				STRLEN iLen;
-				char * szValue = SvPV(pParams, iLen);
-				pCDT -> operator=(std::string(szValue, iLen));
+				if (SvPOK(pParams))
+				{
+					STRLEN iLen;
+					char * szValue = SvPV(pParams, iLen);
+					pCDT -> operator=(std::string(szValue, iLen));
+				}
 			}
 			break;
 		// 5
@@ -540,7 +543,7 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 					pCDT -> operator=(std::string(szValue, iLen));
 				}
 			break;
-		// 8
+		// 8/
 #if ((PERL_API_VERSION == 8) || (PERL_API_VERSION == 6))
 		case SVt_PVBM:
 			pCDT -> operator=(std::string("*PVBM*", 6)); // Stub!
@@ -775,9 +778,12 @@ int CTPP2::include_dirs(SV * aIncludeDirs)
 			return -1;
 		}
 
-		STRLEN iLen;
-		char * szValue = SvPV(pElement, iLen);
-		vTMP.push_back(std::string(szValue, iLen));
+		if (SvPOK(pElement))
+		{
+			STRLEN iLen;
+			char * szValue = SvPV(pElement, iLen);
+			vTMP.push_back(std::string(szValue, iLen));
+		}
 	}
 	vIncludeDirs.swap(vTMP);
 
@@ -1136,12 +1142,14 @@ CTPP2::output(...)
 	if (items == 4)
 	{
 		STRLEN    iKeyLen = 0;
-		char    * szKey   = SvPV(ST(2), iKeyLen);
+		char    * szKey   = NULL;
+
+		if (SvPOK(ST(2))) { szKey = SvPV(ST(2), iKeyLen); }
 		if (szKey == NULL || iKeyLen == 0) { croak("ERROR: incorrect source encoding"); }
 		sSrcEnc.assign(szKey, iKeyLen);
 
 		iKeyLen = 0;
-		szKey   = SvPV(ST(3), iKeyLen);
+		if (SvPOK(ST(3))) { szKey = SvPV(ST(3), iKeyLen); }
 		if (szKey == NULL || iKeyLen == 0) { croak("ERROR: incorrect destination encoding"); }
 		sDstEnc.assign(szKey, iKeyLen);
 	}

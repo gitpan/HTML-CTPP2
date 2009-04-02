@@ -13,7 +13,7 @@ require AutoLoader;
 
 );
 
-$VERSION = '2.4.7';
+$VERSION = '2.4.8';
 
 bootstrap HTML::CTPP2 $VERSION;
 
@@ -262,33 +262,39 @@ __END__;
 
   CTPP2 support following built-in functions:
 
-    * AVG 
-    * BASE64_ENCODE 
-    * BASE64_DECODE 
-    * CAST 
-    * DATE_FORMAT 
-    * DEFAULT 
-    * DEFINED 
-    * FORM_PARAM 
-    * GETTEXT (_) 
-    * HMAC_MD5 
-    * HREF_PARAM 
-    * HTMLESCAPE 
-    * ICONV 
-    * IN_SET 
-    * JSESCAPE 
-    * JSON 
-    * LOG 
-    * MD5 
-    * MAX 
-    * MIN 
-    * NUM_FORMAT 
-    * OBJ_DUMP 
-    * RANDOM 
-    * SIZE 
-    * URIESCAPE 
-    * URLESCAPE 
-    * VERSION 
+    * AVG
+    * BASE64_ENCODE
+    * BASE64_DECODE
+    * CAST
+    * CONCAT
+    * DATE_FORMAT
+    * DEFAULT
+    * DEFINED
+    * FORM_PARAM
+    * GETTEXT (_)
+    * HMAC_MD5
+    * HREF_PARAM
+    * HTMLESCAPE
+    * ICONV
+    * IN_SET
+    * JSESCAPE
+    * JSON
+    * LOG
+    * MD5
+    * MAX
+    * MB_SIZE
+    * MB_SUBSTR
+    * MB_TRUNCATE
+    * MIN
+    * NUM_FORMAT
+    * OBJ_DUMP
+    * RANDOM
+    * SIZE
+    * SUBSTR
+    * TRUNCATE
+    * URIESCAPE
+    * URLESCAPE
+    * VERSION
     * XMLESCAPE
 
   Please refer to CTPP2 library documentation to get detailed
@@ -407,14 +413,21 @@ __END__;
 =head2 get_last_error() - get human-readable error description
 
   Your can get detailed description if any error occured. Method return a hash
-  with set of following keys:
+  reference with set of following keys:
 
   'template_name' - template file name where error occured
   'line'          - line in template file
   'pos'           - position in file
   'ip'            - virtual machine instruction pointer
-  'error_code'    - error code, integer munber
+  'error_code'    - error code, integer number
   'error_str'     - human-readable error description
+
+  my $e = $T -> get_last_error();
+  print "In file "      . $e -> {'template_name'} .
+        " at line "     . $e -> {'line'} .
+        ", pos "        . $e -> {'pos'} .
+        ": "            . $e -> {'error_str'} .
+        ", error code " . $e -> {'error_code'};
 
 =head1 AUTHOR
 
@@ -426,7 +439,9 @@ perl(1), HTML::Template(3), HTML::Template::Pro(3)
 
 =head1 WEBSITE
 
-http://ctpp.havoc.ru/
+http://ctpp.havoc.ru/en/ - in English
+
+http://ctpp.havoc.ru/    - for Russian speakers
 
 =head1 LICENSE
 
