@@ -640,7 +640,36 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 			break;
 		// 13
 		case SVt_PVGV:
-			pCDT -> operator=(std::string("*PVGV*", 6)); // Stub!
+			{
+				GV * pFN = gv_fetchmethod_autoload(SvSTASH(pParams), "(\"\"", 0);
+				if (pFN == NULL)
+				{
+					pCDT -> operator=(CTPP::CDT::UNDEF);
+				}
+				else
+				{
+					dSP;
+					ENTER; SAVETMPS; PUSHMARK (SP);
+					XPUSHs(sv_bless(sv_2mortal(newRV_inc(pParams)), SvSTASH(pParams)));
+					PUTBACK;
+					call_sv((SV *)GvCV (pFN), G_SCALAR);
+					SPAGAIN;
+					if (SvROK (TOPs) && SvRV(TOPs) == pParams)
+					{
+						croak("%s::(\"\" stringification method returned same object as was passed instead of a new one", HvNAME(SvSTASH(pParams)));
+						return -1;
+                                        }
+					pParams = POPs;
+					PUTBACK;
+
+					if (pParams != NULL)
+					{
+						STRLEN iLen;
+						char * szValue = SvPV(pParams, iLen);
+						pCDT -> operator=(std::string(szValue, iLen));
+					}
+				}
+			}
 			break;
 		// 14
 		case SVt_PVFM:

@@ -1,5 +1,8 @@
 Revision history for Perl extension HTML::CTPP2.
 
+2.4.10 Fri Apr 10 20:15:00 2009
+	- Support of stringificated objects
+
 2.4.8  Thu Apr  2 18:50:00 2009
 	- Fixed "Use of uninitialized value in subroutine entry" warning
 
