@@ -542,6 +542,16 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 					char * szValue = SvPV(pParams, iLen);
 					pCDT -> operator=(std::string(szValue, iLen));
 				}
+				else if (SvROK(pParams))
+				{
+					return param(SvRV(pParams), pCDT, pUplinkCDT, sKey, iPrevIsHash, iProcessed);
+				}
+				// Stub for unknown Perl types
+				else
+				{
+					pCDT -> operator=(std::string("SVt_PVMG: "));
+					pCDT -> operator+=(UINT_32(SvFLAGS(pParams)));
+				}
 			break;
 		// 8/
 #if ((PERL_API_VERSION == 8) || (PERL_API_VERSION == 6))
@@ -594,6 +604,7 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 							std::string sTMPKey(szKey, iKeyLen);
 
 							CTPP::CDT oTMP;
+
 							param(pValue, &oTMP, pUplinkCDT, sTMPKey, C_PREV_LEVEL_IS_HASH, iProcessed);
 							if (iProcessed == 0)
 							{
