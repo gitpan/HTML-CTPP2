@@ -13,7 +13,11 @@ require AutoLoader;
 
 );
 
-$VERSION = '2.4.11';
+@EXPORT_OK = qw(
+
+);
+
+$VERSION = '2.4.12';
 
 bootstrap HTML::CTPP2 $VERSION;
 
@@ -46,9 +50,16 @@ __END__;
 
   # Parse template
   my $Bytecode = $T -> parse_template("hello.tmpl");
+  or
+  my $Bytecode = $T -> parse_text("<TMPL_var hello>");
 
   # Fill parameters
-  my %H = ("foo" => "bar", array => [ { "key" => "first" }, { "key" => "second"} ]);
+  my %H = (foo   => "bar",
+           array => [
+                      { "key" => "first" },
+                      { "key" => "second"}
+                    ]
+          );
 
   $T -> param(\%H);
 
@@ -67,17 +78,15 @@ __END__;
   Since version 2.1.1 of CTPP *library*, you can also use expressions in <TMPL_if
   and in <TMPL_var operators:
 
-  File `math_expr.tmpl`:
-  <TMPL_var a> + <TMPL_var b> = <TMPL_var (a + b)>
-  <TMPL_if (age < 18 && age > 90)>Invalid age<TMPL_else>Age correct</TMPL_if>
+  Since version 2.5.0 of CTPP *library*, you can also use loop iterators <TMPL_foreach.
 
 =head1 DESCRIPTION
 
   This module is very similar to well-known Sam Tregar's HTML::Template but works
   in 22 - 25 times faster and contains extra functionality.
-  CTPP2 template language dialect contains 9 operators: <TMPL_var>, <TMPL_if>,
-  <TMPL_elsif>, <TMPL_else>, <TMPL_unless>, <TMPL_loop>, <TMPL_udf>, <TMPL_include>
-  and <TMPL_comment>.
+  CTPP2 template language dialect contains 10 operators: <TMPL_var>, <TMPL_if>,
+  <TMPL_elsif>, <TMPL_else>, <TMPL_unless>, <TMPL_loop>, <TMPL_foreach>, <TMPL_udf>,
+  <TMPL_include> and <TMPL_comment>.
 
 =head1 THE TAGS
 
@@ -165,8 +174,8 @@ __END__;
 
   The loop - The multiple repeating of some pre-defined actions.
 
-  The only type of loops has been defined in CTPP - the forward running over
-  through the data array. The operator corresponding with this action looks
+  The first type of loops in CTPP - the forward running over through
+  the data array. The operator corresponding with this action looks
   like the following:
 
   <TMPL_loop MODIFIERS LOOP_NAME>
@@ -196,6 +205,16 @@ __END__;
     * __SIZE__ - the whole number of the loop iterations.
 
     * __CONTENT__ - contains value of current iteration
+
+=head2 TMPL_foreach
+
+  The second type of loops in CTPP - forward iteration through the data array
+  The operator corresponding with this action looks like the following:
+
+  <TMPL_foreach LOOP_NAME as ITERATOR>
+      <TMPL_var OBJ_DUMP(ITERATOR)>
+      The LOOP instructions.
+  </TMPL_foreach>
 
 =head2 TMPL_include
 
@@ -238,7 +257,7 @@ __END__;
   You can declare a block of code and call it by name:
   Example 4.1:
   <TMPL_block "foo"> <!-- Declare block with name "foo" -->
-      ... some foo's HTML and CTPP operators here ...
+      ... some foo''s HTML and CTPP operators here ...
   </TMPL_block>
   <TMPL_block "bar"> <!-- Declare block with name "bar" -->
       ... some other HTML and/or CTPP operators here ...
@@ -295,6 +314,7 @@ __END__;
     * URIESCAPE
     * URLESCAPE
     * VERSION
+    * WMLESCAPE
     * XMLESCAPE
 
   Please refer to CTPP2 library documentation to get detailed
@@ -382,6 +402,10 @@ __END__;
 
   ATTENTION: you should specify FULL path to precompiled file,
   CTPP DOES NOT uses include_dirs to search bytecode!
+
+=head2 parse_text() - parse text block
+
+  my $bytecode = $T -> parse_text("<TMPL_var hello>");
 
 =head2 dump_params() - get internal representation of all given parameters.
 

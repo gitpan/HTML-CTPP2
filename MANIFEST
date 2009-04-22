@@ -7,6 +7,8 @@ t/test05.t
 t/test06.t
 t/test07.t
 t/test08.t
+t/test09.t
+t/test10.t
 lib/HTML/CTPP2.pm
 examples/runtime-error.tmpl
 examples/testjson.json

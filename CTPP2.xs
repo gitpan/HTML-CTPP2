@@ -95,6 +95,9 @@ public:
 	// Parse template
 	Bytecode * parse_template(char * szFileName);
 
+	// Parse block of text
+	Bytecode * parse_text(SV * sText);
+
 	// Dump parameters
 	SV * dump_params();
 
@@ -188,14 +191,67 @@ private:
 	// Operator =
 	Bytecode & operator=(const Bytecode & oRhs);
 
+	// Create bytecode object from text block
+	Bytecode(SV * sText, const std::vector<std::string> & vIncludeDirs);
+
 	// Create bytecode object
 	Bytecode(char * szFileName, int iFlag, const std::vector<std::string> & vIncludeDirs);
+
 	// Memory core
 	CTPP::VMExecutable   * pCore;
 	// Memory core size
 	UINT_32                iCoreSize;
 	// Ready-to-run program
 	CTPP::VMMemoryCore   * pVMMemoryCore;
+};
+
+
+//
+// Source loader
+//
+class CTPP2TextSourceLoader:
+  public CTPP::CTPP2SourceLoader
+{
+public:
+	/**
+	  @brief Constructor
+	*/
+	CTPP2TextSourceLoader(const std::string & sTemplate);
+
+	/**
+	  @brief A destructor
+	*/
+	~CTPP2TextSourceLoader() throw();
+
+	/**
+	  @brief Set include directories
+	*/
+	void SetIncludeDirs(const std::vector<std::string> & vIIncludeDirs);
+
+private:
+	const std::string     sTemplate;
+
+	CTPP::CTPP2FileSourceLoader oFileLoader;
+
+	/**
+	  @brief Load template with specified name
+	  @param szTemplateName - template name
+	  @return 0 if success, -1 if any error occured
+	*/
+	INT_32 LoadTemplate(CCHAR_P szTemplateName);
+
+	/**
+	  @brief Get template
+	  @param iTemplateSize - template size [out]
+	  @return pointer to start of template buffer if success, NULL - if any error occured
+	*/
+	CCHAR_P GetTemplate(UINT_32 & iTemplateSize);
+
+	/**
+	  @brief Clone loader object
+	  @return clone to self
+	*/
+	CTPP2SourceLoader * Clone();
 };
 
 // CTPP2 Implementation //////////////////////////////////////////
@@ -516,6 +572,15 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 					char * szValue = SvPV(pParams, iLen);
 					pCDT -> operator=(std::string(szValue, iLen));
 				}
+				else if (SvROK(pParams))
+				{
+					return param(SvRV(pParams), pCDT, pUplinkCDT, sKey, iPrevIsHash, iProcessed);
+				}
+				else
+				{
+					pCDT -> operator=(std::string("SVt_PV: "));
+					pCDT -> operator+=(UINT_32(SvFLAGS(pParams)));
+				}
 			}
 			break;
 		// 5
@@ -647,7 +712,30 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 			break;
 		// 12
 		case SVt_PVCV:
-			pCDT -> operator=(std::string("*PVCV*", 6)); // Stub!
+			{
+				CV * pCV = (CV*)pParams;
+
+				dSP;
+				ENTER; SAVETMPS; PUSHMARK(SP);
+				PUTBACK;
+				call_sv((SV *)pCV, G_SCALAR);
+				SPAGAIN;
+				pParams = POPs;
+
+				try
+				{
+					param(pParams, pCDT, pUplinkCDT, sKey, iPrevIsHash, iProcessed);
+				}
+				catch(...)
+				{
+					PUTBACK;
+					FREETMPS; LEAVE;
+					throw;
+				}
+
+				PUTBACK;
+				FREETMPS; LEAVE;
+			}
 			break;
 		// 13
 		case SVt_PVGV:
@@ -660,25 +748,31 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 				else
 				{
 					dSP;
-					ENTER; SAVETMPS; PUSHMARK (SP);
+					ENTER; SAVETMPS; PUSHMARK(SP);
 					XPUSHs(sv_bless(sv_2mortal(newRV_inc(pParams)), SvSTASH(pParams)));
 					PUTBACK;
 					call_sv((SV *)GvCV (pFN), G_SCALAR);
 					SPAGAIN;
-					if (SvROK (TOPs) && SvRV(TOPs) == pParams)
+					if (SvROK(TOPs) && SvRV(TOPs) == pParams)
 					{
 						croak("%s::(\"\" stringification method returned same object as was passed instead of a new one", HvNAME(SvSTASH(pParams)));
 						return -1;
-                                        }
-					pParams = POPs;
-					PUTBACK;
-
-					if (pParams != NULL)
-					{
-						STRLEN iLen;
-						char * szValue = SvPV(pParams, iLen);
-						pCDT -> operator=(std::string(szValue, iLen));
 					}
+
+					pParams = POPs;
+					try
+					{
+						param(pParams, pCDT, pUplinkCDT, sKey, iPrevIsHash, iProcessed);
+					}
+					catch(...)
+					{
+						PUTBACK;
+						FREETMPS; LEAVE;
+						throw;
+					}
+
+					PUTBACK;
+					FREETMPS; LEAVE;
 				}
 			}
 			break;
@@ -895,6 +989,43 @@ return NULL;
 }
 
 //
+// Parse template
+//
+Bytecode * CTPP2::parse_text(SV * sText)
+{
+	using namespace CTPP;
+	try
+	{
+		return new Bytecode(sText, vIncludeDirs);
+	}
+	catch (CTPPParserSyntaxError        & e)
+	{
+		oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | CTPP_SYNTAX_ERROR, e.GetLine(), e.GetLinePos(), 0);
+	}
+	catch (CTPPParserOperatorsMismatch  & e)
+	{
+		oCTPPError = CTPPError("direct source", std::string("Expected ") + e.Expected() + ", but found " + e.Found(), CTPP_COMPILER_ERROR | CTPP_SYNTAX_ERROR, e.GetLine(), e.GetLinePos(), 0);
+	}
+	catch (CTPPUnixException            & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | CTPP_UNIX_ERROR,                    0, 0, 0); }
+	catch (CDTRangeException            & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | CTPP_RANGE_ERROR,                   0, 0, 0); }
+	catch (CDTAccessException           & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | CTPP_ACCESS_ERROR,                  0, 0, 0); }
+	catch (CDTTypeCastException         & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | CTPP_TYPE_CAST_ERROR,               0, 0, 0); }
+	catch (CTPPLogicError               & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | CTPP_LOGIC_ERROR,                   0, 0, 0); }
+	catch (CTPPException                & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | CTPP_UNKNOWN_ERROR,                 0, 0, 0); }
+	catch (std::exception               & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | STL_UNKNOWN_ERROR,                  0, 0, 0); }
+	catch (...)                              { oCTPPError = CTPPError("direct source", "Unknown Error", CTPP_COMPILER_ERROR | STL_UNKNOWN_ERROR,           0, 0, 0); }
+
+	// Error occured
+	warn("parse_template(): In file %s at line %d, pos %d: %s (error code 0x%08X)", oCTPPError.template_name.c_str(),
+	                                                                                oCTPPError.line,
+	                                                                                oCTPPError.pos,
+	                                                                                oCTPPError.error_descr.c_str(),
+	                                                                                oCTPPError.error_code);
+
+return NULL;
+}
+
+//
 // Dump parameters
 //
 SV * CTPP2::dump_params()
@@ -929,6 +1060,52 @@ return newRV_noinc((SV*) pRetVal);
 }
 
 // Bytecode Implementation /////////////////////////////////////
+
+//
+// Constructor
+//
+Bytecode::Bytecode(SV * sText, const std::vector<std::string> & vIncludeDirs): pCore(NULL), pVMMemoryCore(NULL)
+{
+	using namespace CTPP;
+
+	if (!SvPOK(sText)) { throw CTPPLogicError("Cannot template source"); }
+
+	STRLEN iLen;
+	char * szValue = SvPV(sText, iLen);
+
+
+	// Load template
+	CTPP2TextSourceLoader oSourceLoader(std::string(szValue, iLen));
+	oSourceLoader.SetIncludeDirs(vIncludeDirs);
+
+	// Compiler runtime
+	VMOpcodeCollector  oVMOpcodeCollector;
+	StaticText         oSyscalls;
+	StaticData         oStaticData;
+	StaticText         oStaticText;
+	HashTable          oHashTable;
+	CTPP2Compiler oCompiler(oVMOpcodeCollector, oSyscalls, oStaticData, oStaticText, oHashTable);
+
+	// Create template parser
+	CTPP2Parser oCTPP2Parser(&oSourceLoader, &oCompiler, "direct source");
+
+	// Compile template
+	oCTPP2Parser.Compile();
+
+	// Get program core
+	UINT_32 iCodeSize = 0;
+	const VMInstruction * oVMInstruction = oVMOpcodeCollector.GetCode(iCodeSize);
+
+	// Dump program
+	VMDumper oDumper(iCodeSize, oVMInstruction, oSyscalls, oStaticData, oStaticText, oHashTable);
+	const VMExecutable * aProgramCore = oDumper.GetExecutable(iCoreSize);
+
+	// Allocate memory
+	pCore = (VMExecutable *)malloc(iCoreSize);
+	memcpy(pCore, aProgramCore, iCoreSize);
+	pVMMemoryCore = new VMMemoryCore(pCore);
+//fprintf(stderr, "pCore = %p, pVMMemoryCore = %p\n", pCore, pVMMemoryCore);
+}
 
 //
 // Constructor
@@ -1042,6 +1219,48 @@ Bytecode::~Bytecode() throw()
 	free(pCore);
 }
 
+// /////////
+
+//
+// Constructor
+//
+CTPP2TextSourceLoader::CTPP2TextSourceLoader(const std::string & sITemplate): sTemplate(sITemplate)
+{
+	;;
+}
+
+//
+// Set include directories
+//
+void CTPP2TextSourceLoader::SetIncludeDirs(const std::vector<std::string> & vIIncludeDirs) { return oFileLoader.SetIncludeDirs(vIIncludeDirs); }
+
+//
+// Load template with specified name
+//
+INT_32 CTPP2TextSourceLoader::LoadTemplate(CCHAR_P szTemplateName) { return oFileLoader.LoadTemplate(szTemplateName); }
+
+//
+// Get template
+//
+CCHAR_P CTPP2TextSourceLoader::GetTemplate(UINT_32 & iTemplateSize)
+{
+	iTemplateSize = sTemplate.size();
+
+return sTemplate.data();
+}
+
+//
+// Clone loader object
+//
+CTPP::CTPP2SourceLoader * CTPP2TextSourceLoader::Clone() { return oFileLoader.Clone(); }
+
+//
+// A destructor
+//
+CTPP2TextSourceLoader::~CTPP2TextSourceLoader() throw()
+{
+	;;
+}
 
 MODULE = HTML::CTPP2		PACKAGE = HTML::CTPP2
 
@@ -1212,6 +1431,14 @@ SV *
 CTPP2::parse_template(char * szFileName)
     CODE:
         Bytecode * pBytecode = THIS -> parse_template(szFileName);
+        ST(0) = sv_newmortal();
+        sv_setref_pv( ST(0), "HTML::CTPP2::Bytecode", (void*)pBytecode );
+        XSRETURN(1);
+
+SV *
+CTPP2::parse_text(SV * sTemplate)
+    CODE:
+        Bytecode * pBytecode = THIS -> parse_text(sTemplate);
         ST(0) = sv_newmortal();
         sv_setref_pv( ST(0), "HTML::CTPP2::Bytecode", (void*)pBytecode );
         XSRETURN(1);

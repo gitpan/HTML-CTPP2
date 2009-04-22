@@ -1,5 +1,8 @@
 Revision history for Perl extension HTML::CTPP2.
 
+2.4.12 Mon Apr 20 20:00:00 2009
+	- Fixes in SVt_PV parser, new method: parse_text
+
 2.4.11 Thu Apr 16 19:32:00 2009
 	- SvROK(pParams) in SVt_PVMG parser bug fix
 
