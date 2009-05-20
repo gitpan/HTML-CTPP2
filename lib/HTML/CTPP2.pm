@@ -17,7 +17,7 @@ require AutoLoader;
 
 );
 
-$VERSION = '2.4.12';
+$VERSION = '2.4.13';
 
 bootstrap HTML::CTPP2 $VERSION;
 
@@ -368,7 +368,7 @@ __END__;
   or
   $T -> reset();
 
-=head2 json_param($JSON) - set some parameters
+=head2 json_param() - set some parameters
 
   $T -> json_param('{ "foo": "bar", "baz" : 123}');
 

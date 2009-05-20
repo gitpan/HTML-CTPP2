@@ -19,13 +19,12 @@ my $Bytecode = $T -> parse_template("examples/runtime-error.tmpl");
 $T -> output($Bytecode);
 my $Error = $T -> get_last_error();
 
-#warn sprintf("ERROR: 0x%08X; In file `%s`, line %d, pos %d: %s; IP 0x%08X\n", $Error-> {'error_code'},
-#                                                                        $Error-> {'template_name'},
-#                                                                        $Error-> {'line'},
-#                                                                        $Error-> {'pos'},
-#                                                                        $Error-> {'error_str'},
-#                                                                        $Error-> {'ip'});
-#warn Dumper ($Error);
+warn sprintf("ERROR: 0x%08X; In file `%s`, line %d, pos %d: %s; IP 0x%08X\n", $Error-> {'error_code'},
+                                                                        $Error-> {'template_name'},
+                                                                        $Error-> {'line'},
+                                                                        $Error-> {'pos'},
+                                                                        $Error-> {'error_str'},
+                                                                        $Error-> {'ip'});
 
 ok ($Error -> {'pos'}          == 25 &&
     $Error -> {'line'}         == 1 &&

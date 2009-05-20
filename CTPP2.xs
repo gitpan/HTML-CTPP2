@@ -432,8 +432,12 @@ int CTPP2::json_param(SV * pParams)
 
 	long eSVType = SvTYPE(pParams);
 
-	STRLEN iJSONLen    = 0;
-	char * szJSON      = NULL;
+	STRLEN        iJSONLen = 0;
+#ifdef SvPV_const
+	const char  * szJSON   = NULL;
+#else
+	char        * szJSON   = NULL;
+#endif
 
 	int    iOK = -1;
 
@@ -446,7 +450,11 @@ int CTPP2::json_param(SV * pParams)
 		case SVt_PVIV:
 		case SVt_PVNV:
 		case SVt_PVMG:
+#ifdef SvPV_const // More effcetive way to get values
+			szJSON = SvPV_const(pParams, iJSONLen);
+#else
 			szJSON = SvPV(pParams, iJSONLen);
+#endif
 			break;
 
 			default:
@@ -569,7 +577,11 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 				if (SvPOK(pParams))
 				{
 					STRLEN iLen;
+#ifdef SvPV_const // More effcetive way to get values
+					const char * szValue = SvPV_const(pParams, iLen);
+#else
 					char * szValue = SvPV(pParams, iLen);
+#endif
 					pCDT -> operator=(std::string(szValue, iLen));
 				}
 				else if (SvROK(pParams))
@@ -604,12 +616,21 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 				else if (SvPOK(pParams))
 				{
 					STRLEN iLen;
+#ifdef SvPV_const // More effcetive way to get values
+					const char * szValue = SvPV_const(pParams, iLen);
+#else
 					char * szValue = SvPV(pParams, iLen);
+#endif
 					pCDT -> operator=(std::string(szValue, iLen));
 				}
 				else if (SvROK(pParams))
 				{
 					return param(SvRV(pParams), pCDT, pUplinkCDT, sKey, iPrevIsHash, iProcessed);
+				}
+				// Undef
+				else if (!SvOK(pParams))
+				{
+					pCDT -> operator=(CTPP::CDT());
 				}
 				// Stub for unknown Perl types
 				else
@@ -915,7 +936,11 @@ int CTPP2::include_dirs(SV * aIncludeDirs)
 		if (SvPOK(pElement))
 		{
 			STRLEN iLen;
+#ifdef SvPV_const // More effcetive way to get values
+			const char * szValue = SvPV_const(pElement, iLen);
+#else
 			char * szValue = SvPV(pElement, iLen);
+#endif
 			vTMP.push_back(std::string(szValue, iLen));
 		}
 	}
@@ -1071,8 +1096,11 @@ Bytecode::Bytecode(SV * sText, const std::vector<std::string> & vIncludeDirs): p
 	if (!SvPOK(sText)) { throw CTPPLogicError("Cannot template source"); }
 
 	STRLEN iLen;
+#ifdef SvPV_const // More effcetive way to get values
+	const char * szValue = SvPV_const(sText, iLen);
+#else
 	char * szValue = SvPV(sText, iLen);
-
+#endif
 
 	// Load template
 	CTPP2TextSourceLoader oSourceLoader(std::string(szValue, iLen));
@@ -1283,12 +1311,15 @@ CTPP2::new(...)
 	{
 		STRLEN iKeyLen = 0;
 		STRLEN iValLen = 0;
-
+#ifdef SvPV_const
+		const char * szKey   = NULL;
+		const char * szValue = NULL;
+#else
 		char * szKey   = NULL;
 		char * szValue = NULL;
+#endif
 
 		long eSVType = SvTYPE(ST(iI));
-
 		switch (eSVType)
 		{
 			case SVt_IV:
@@ -1298,7 +1329,11 @@ CTPP2::new(...)
 			case SVt_PVIV:
 			case SVt_PVNV:
 			case SVt_PVMG:
+#ifdef SvPV_const // More effcetive way to get values
+				szKey = SvPV_const(ST(iI), iKeyLen);
+#else
 				szKey = SvPV(ST(iI), iKeyLen);
+#endif
 				break;
 
 			default:
@@ -1316,7 +1351,11 @@ CTPP2::new(...)
 			case SVt_PVIV:
 			case SVt_PVNV:
 			case SVt_PVMG:
+#ifdef SvPV_const // More effcetive way to get values
+				szValue = SvPV_const(ST(iI + 1), iValLen);
+#else
 				szValue = SvPV(ST(iI + 1), iValLen);
+#endif
 				break;
 			default:
 				croak("ERROR: Parameter name expected");
@@ -1400,15 +1439,29 @@ CTPP2::output(...)
 
 	if (items == 4)
 	{
-		STRLEN    iKeyLen = 0;
-		char    * szKey   = NULL;
+		STRLEN        iKeyLen = 0;
+		const char  * szKey   = NULL;
 
-		if (SvPOK(ST(2))) { szKey = SvPV(ST(2), iKeyLen); }
+		if (SvPOK(ST(2)))
+		{
+#ifdef SvPV_const // More effcetive way to get values
+			szKey = SvPV_const(ST(2), iKeyLen);
+#else
+			szKey = SvPV(ST(2), iKeyLen);
+#endif
+		}
 		if (szKey == NULL || iKeyLen == 0) { croak("ERROR: incorrect source encoding"); }
 		sSrcEnc.assign(szKey, iKeyLen);
 
 		iKeyLen = 0;
-		if (SvPOK(ST(3))) { szKey = SvPV(ST(3), iKeyLen); }
+		if (SvPOK(ST(3)))
+		{
+#ifdef SvPV_const // More effcetive way to get values
+			szKey = SvPV_const(ST(3), iKeyLen);
+#else
+			szKey = SvPV(ST(3), iKeyLen);
+#endif
+		}
 		if (szKey == NULL || iKeyLen == 0) { croak("ERROR: incorrect destination encoding"); }
 		sDstEnc.assign(szKey, iKeyLen);
 	}
