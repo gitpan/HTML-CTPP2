@@ -830,8 +830,6 @@ SV * CTPP2::output(Bytecode     * pBytecode,
 
 		if (!sSourceCharset.empty() && !sDestCharset.empty())
 		{
-			if (strnsDestCharset.c_ctr() == bIsUTF
-
 			StringIconvOutputCollector oOutputCollector(sResult, sSourceCharset, sDestCharset, 3);
 			pVM -> Init(oOutputCollector, *(pBytecode -> pVMMemoryCore));
 			pVM -> Run(*(pBytecode -> pVMMemoryCore), iIP, *pCDT);

@@ -17,7 +17,7 @@ require AutoLoader;
 
 );
 
-$VERSION = '2.5.2';
+$VERSION = '2.5.3';
 
 bootstrap HTML::CTPP2 $VERSION;
 
