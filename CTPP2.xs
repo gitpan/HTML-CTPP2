@@ -588,11 +588,6 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 				{
 					return param(SvRV(pParams), pCDT, pUplinkCDT, sKey, iPrevIsHash, iProcessed);
 				}
-				else
-				{
-					pCDT -> operator=(std::string("SVt_PV: "));
-					pCDT -> operator+=(UINT_32(SvFLAGS(pParams)));
-				}
 			}
 			break;
 		// 5

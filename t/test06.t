@@ -31,4 +31,4 @@ ok ($Error -> {'pos'}          == 25 &&
     $Error-> {'template_name'} eq 'examples/runtime-error.tmpl' &&
     $Error-> {'error_code'}    == 0x0200000C &&
     $Error-> {'error_str'}     eq '*** Internal syscall error ***'&&
-    $Error-> {'ip'}            == 0x0000000C);
+    $Error-> {'ip'}            == 0x0000000F);
