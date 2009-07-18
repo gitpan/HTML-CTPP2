@@ -17,12 +17,9 @@ require AutoLoader;
 
 );
 
-$VERSION = '2.5.8';
+$VERSION = '2.4.17';
 
 bootstrap HTML::CTPP2 $VERSION;
-
-# Thread-safe
-sub CLONE_SKIP { return 1; }
 
 # Autoload methods go after =cut, and are processed by the autosplit program.
 1;
@@ -69,7 +66,7 @@ __END__;
   my $Result = $T -> output($Bytecode);
   or
   my $SourceCharset = 'iso-8859-5';
-  my $DestinationCharset = 'utf-8';
+  my $SestinationCharset = 'utf-8';
   my $Result = $T -> output($Bytecode, $SourceCharset, $DestinationCharset);
 
   Now check output:
@@ -309,7 +306,6 @@ __END__;
     * MB_TRUNCATE
     * MIN
     * NUM_FORMAT
-    * NUMERAL
     * OBJ_DUMP
     * RANDOM
     * SIZE
@@ -335,7 +331,7 @@ __END__;
   You can also change some internal variables of CTPP engine:
   my $T = new HTML::CTPP2(arg_stack_size      => 1024,
                           code_stack_size     => 1024,
-                          steps_limit         => 1024*1024,
+                          steps_limit         => 10240,
                           max_functions       => 1024,
                           source_charset      => 'CP1251',
                           destination_charset => 'utf-8');
@@ -385,7 +381,7 @@ __END__;
   or
 
   my $SourceCharset = 'iso-8859-5';
-  my $DestinationCharset = 'utf-8';
+  my $SestinationCharset = 'utf-8';
   my $Result = $T -> output($Bytecode, $SourceCharset, $DestinationCharset);
 
 
