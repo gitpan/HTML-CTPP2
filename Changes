@@ -1,7 +1,24 @@
 Revision history for Perl extension HTML::CTPP2.
 
-2.4.18  Tue Aug 18 13:39:00 2009
+2.5.10 Tue Aug 18 13:25:00 2009
 	- Fixes for multithreaded Perl
+
+2.5.9  Sat Jul 18 21:26:00 2009
+	- Fixes for Perl 5.8.9 & Perl 5.10 API
+
+2.5.8  Thu Jul 16 19:29:00 2009
+	- Fixes for newXS macros
+
+2.5.7  Tue Jul 14 18:32:00 2009
+	- Fixes in SVt_PVMG
+	  Thanks a lot to Ilia Vinokurov.
+
+2.5.3  Wed May 28 19:28:00 2009
+	- Fixes in SVt_PV parser for undef values.
+	  Thanks to Ilia Vinokurov.
+
+2.5.1  Wed May 20 15:00:00 2009
+	- Switch to new branch of CTPP library: 2.5.
 
 2.4.17  Sat Jul 18 21:26:00 2009
 	- Fixes for Perl 5.8.9 & Perl 5.10 API
