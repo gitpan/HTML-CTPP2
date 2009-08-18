@@ -1,5 +1,5 @@
-HTML-CTPP2 version 2.5.9
-========================
+HTML-CTPP2 version 2.4.17
+=========================
 
 HTML::CTPP2 - Perl interface for CTPP2 library
 
@@ -31,7 +31,7 @@ To install CTPP2 library type the following:
    cd ctpp2-2.X.X
    cmake .
    make
-   make test
+   make test 
    make install
 
 Since CTPP uses cmake you should have installed cmake building system,

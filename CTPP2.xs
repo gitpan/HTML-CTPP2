@@ -46,7 +46,7 @@ extern "C" {
 #if ((PERL_API_VERSION == 8) || (PERL_API_VERSION == 6))
     #ifdef newXS
         #undef newXS
-        #define newXS(method, func, file) Perl_newXS((char *)(method), func, (char *)(file))
+        #define newXS(method, func, file) Perl_newXS(aTHX_ (char *)(method), func, (char *)(file))
     #endif
 #endif
 
@@ -273,7 +273,7 @@ CTPP2::CTPP2(const UINT_32      & iArgStackSize,
              const UINT_32      & iStepsLimit,
              const UINT_32      & iMaxFunctions,
              const std::string  & sSourceCharset,
-             const std::string  & sDestCharset): pSyscallFactory(NULL), pCDT(NULL), pVM(NULL)
+             const std::string  & sDestCharset): pCDT(NULL), pSyscallFactory(NULL), pVM(NULL)
 {
 	using namespace CTPP;
 	try
@@ -459,7 +459,7 @@ int CTPP2::json_param(SV * pParams)
 		case SVt_PVIV:
 		case SVt_PVNV:
 		case SVt_PVMG:
-#ifdef SvPV_const // More effective way to get values
+#ifdef SvPV_const // More effcetive way to get values
 			szJSON = SvPV_const(pParams, iJSONLen);
 #else
 			szJSON = SvPV(pParams, iJSONLen);
@@ -586,7 +586,7 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 				if (SvPOK(pParams))
 				{
 					STRLEN iLen;
-#ifdef SvPV_const // More effective way to get values
+#ifdef SvPV_const // More effcetive way to get values
 					const char * szValue = SvPV_const(pParams, iLen);
 #else
 					char * szValue = SvPV(pParams, iLen);
@@ -605,9 +605,7 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 		case SVt_PVNV:
 		// 7
 		case SVt_PVMG:
-				// Integer
 				if      (SvIOK(pParams)) { pCDT -> operator=( INT_64( ((xpviv *)(pParams -> sv_any)) -> xiv_iv ) ); }
-				// Number
 				else if (SvNOK(pParams))
 				{
 #if ((PERL_API_VERSION == 8) || (PERL_API_VERSION == 6))
@@ -619,18 +617,16 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 #endif
 
 				}
-				// String
 				else if (SvPOK(pParams))
 				{
 					STRLEN iLen;
-#ifdef SvPV_const // More effective way to get values
+#ifdef SvPV_const // More effcetive way to get values
 					const char * szValue = SvPV_const(pParams, iLen);
 #else
 					char * szValue = SvPV(pParams, iLen);
 #endif
 					pCDT -> operator=(std::string(szValue, iLen));
 				}
-				// Reference
 				else if (SvROK(pParams))
 				{
 					return param(SvRV(pParams), pCDT, pUplinkCDT, sKey, iPrevIsHash, iProcessed);
@@ -947,7 +943,7 @@ int CTPP2::include_dirs(SV * aIncludeDirs)
 		if (SvTYPE(pElement) != SVt_PV)
 		{
 			CHAR_8 szTMPBuf[1024 + 1];
-			snprintf(szTMPBuf, 1024, "ERROR in include_dirs(): Need STRING at array index %d", int(iI));
+			snprintf(szTMPBuf, 1024, "ERROR in include_dirs(): Need STRING at array index %d", iI);
 			oCTPPError = CTPPError("", szTMPBuf, CTPP_DATA_ERROR | CTPP_LOGIC_ERROR, 0, 0, 0);
 			warn(szTMPBuf);
 			return -1;
@@ -956,7 +952,7 @@ int CTPP2::include_dirs(SV * aIncludeDirs)
 		if (SvPOK(pElement))
 		{
 			STRLEN iLen;
-#ifdef SvPV_const // More effective way to get values
+#ifdef SvPV_const // More effcetive way to get values
 			const char * szValue = SvPV_const(pElement, iLen);
 #else
 			char * szValue = SvPV(pElement, iLen);
@@ -1116,7 +1112,7 @@ Bytecode::Bytecode(SV * sText, const std::vector<std::string> & vIncludeDirs): p
 	if (!SvPOK(sText)) { throw CTPPLogicError("Cannot template source"); }
 
 	STRLEN iLen;
-#ifdef SvPV_const // More effective way to get values
+#ifdef SvPV_const // More effcetive way to get values
 	const char * szValue = SvPV_const(sText, iLen);
 #else
 	char * szValue = SvPV(sText, iLen);
@@ -1349,7 +1345,7 @@ CTPP2::new(...)
 			case SVt_PVIV:
 			case SVt_PVNV:
 			case SVt_PVMG:
-#ifdef SvPV_const // More effective way to get values
+#ifdef SvPV_const // More effcetive way to get values
 				szKey = SvPV_const(ST(iI), iKeyLen);
 #else
 				szKey = SvPV(ST(iI), iKeyLen);
@@ -1371,7 +1367,7 @@ CTPP2::new(...)
 			case SVt_PVIV:
 			case SVt_PVNV:
 			case SVt_PVMG:
-#ifdef SvPV_const // More effective way to get values
+#ifdef SvPV_const // More effcetive way to get values
 				szValue = SvPV_const(ST(iI + 1), iValLen);
 #else
 				szValue = SvPV(ST(iI + 1), iValLen);
@@ -1464,7 +1460,7 @@ CTPP2::output(...)
 
 		if (SvPOK(ST(2)))
 		{
-#ifdef SvPV_const // More effective way to get values
+#ifdef SvPV_const // More effcetive way to get values
 			szKey = SvPV_const(ST(2), iKeyLen);
 #else
 			szKey = SvPV(ST(2), iKeyLen);
@@ -1476,7 +1472,7 @@ CTPP2::output(...)
 		iKeyLen = 0;
 		if (SvPOK(ST(3)))
 		{
-#ifdef SvPV_const // More effective way to get values
+#ifdef SvPV_const // More effcetive way to get values
 			szKey = SvPV_const(ST(3), iKeyLen);
 #else
 			szKey = SvPV(ST(3), iKeyLen);
