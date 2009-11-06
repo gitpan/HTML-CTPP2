@@ -17,7 +17,7 @@ require AutoLoader;
 
 );
 
-$VERSION = '2.5.10';
+$VERSION = '2.5.12';
 
 bootstrap HTML::CTPP2 $VERSION;
 
@@ -284,6 +284,7 @@ __END__;
 
   CTPP2 support following built-in functions:
 
+    * ARRAY_ELEMENT
     * AVG
     * BASE64_ENCODE
     * BASE64_DECODE
@@ -301,6 +302,7 @@ __END__;
     * IN_SET
     * JSESCAPE
     * JSON
+    * LIST_ELEMENT
     * LOG
     * MD5
     * MAX

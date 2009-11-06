@@ -1,5 +1,11 @@
 Revision history for Perl extension HTML::CTPP2.
 
+2.5.12 Fri Nov  6 12:22:00 2009
+	- Fixes in SVt_IV/SVt_NV data types
+
+2.5.11 Sun Oct 18 21:30:00 2009
+	- Port to ActiveState Perl
+
 2.5.10 Tue Aug 18 13:25:00 2009
 	- Fixes for multithreaded Perl
 

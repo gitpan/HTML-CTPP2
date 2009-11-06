@@ -54,7 +54,12 @@ extern "C" {
 }
 #endif
 
+#if (!defined WIN32) && (!defined _WINDOWS)
 #include <dlfcn.h>
+#else
+#include <windows.h>
+#define strncasecmp strnicmp
+#endif
 
 using CTPP::CTPPError;
 
@@ -352,13 +357,28 @@ int CTPP2::load_udf(char * szLibraryName, char * szInstanceName)
 	}
 
 	// Okay, try to load function
+#if (!defined WIN32) && (!defined _WINDOWS)
 	void * vLibrary = dlopen(szLibraryName, RTLD_NOW | RTLD_GLOBAL);
-
+#else
+	HINSTANCE vLibrary = LoadLibrary(szLibraryName);
+#endif
 	// Error?
 	if (vLibrary == NULL)
 	{
+#if (!defined WIN32) && (!defined _WINDOWS)
 		oCTPPError = CTPPError("", std::string("Cannot load library `") + szLibraryName + "`: `" + dlerror() + "`", CTPP_DATA_ERROR | CTPP_LOGIC_ERROR, 0, 0, 0);
 		warn("ERROR in load_udf(): Cannot load library `%s`: `%s`", szLibraryName, dlerror());
+#else
+		LPVOID lpMsgBuf = NULL;
+		DWORD dw = GetLastError();
+		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf, 0, NULL);
+		oCTPPError = CTPPError("", std::string("Cannot load library `") + szLibraryName + "` `" + (char*)lpMsgBuf + "` `", CTPP_DATA_ERROR | CTPP_LOGIC_ERROR, 0, 0, 0);
+		warn("ERROR in load_udf(): Cannot load library `%s`: (%d) %s", szLibraryName, dw, (char*)lpMsgBuf);
+		if (lpMsgBuf) {
+			LocalFree(lpMsgBuf);
+		}		
+#endif
+
 		return -1;
 	}
 
@@ -371,7 +391,11 @@ int CTPP2::load_udf(char * szLibraryName, char * szInstanceName)
 
 	// This is UGLY hack to avoid stupid gcc warnings
 	// InitPtr vVInitPtr = (InitPtr)dlsym(vLibrary, szInitString); // this code violates C++ Standard
+#if (!defined WIN32) && (!defined _WINDOWS)
 	void * vTMPPtr = dlsym(vLibrary, szInitString);
+#else
+	FARPROC vTMPPtr = GetProcAddress(vLibrary, szInitString);
+#endif
 
 	free(szInitString);
 
@@ -564,17 +588,17 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 			break;
 		// 1
 		case SVt_IV:
-			pCDT -> operator=( INT_64( ((xpviv *)(pParams -> sv_any)) -> xiv_iv ) );
+			if (SvIOK(pParams))
+			{
+				pCDT -> operator=( INT_64(SvIV(pParams)) );
+			}
 			break;
 		// 2
 		case SVt_NV:
-#if ((PERL_API_VERSION == 8) || (PERL_API_VERSION == 6))
-			pCDT -> operator=( W_FLOAT( ((xpvnv *)(pParams -> sv_any)) -> xnv_nv ) );
-#elif (PERL_API_VERSION == 10)
-			pCDT -> operator=( W_FLOAT( ((xpvnv *)(pParams -> sv_any)) -> xnv_u.xnv_nv ) );
-#else
-    #error "This version of perl not supported yet!"
-#endif
+			if (SvNOK(pParams))
+			{
+				pCDT -> operator=( W_FLOAT(SvNV(pParams)) );
+			}
 			break;
 		// 3
 		case SVt_RV:
@@ -606,19 +630,9 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 		// 7
 		case SVt_PVMG:
 				// Integer
-				if      (SvIOK(pParams)) { pCDT -> operator=( INT_64( ((xpviv *)(pParams -> sv_any)) -> xiv_iv ) ); }
+				if      (SvIOK(pParams)) { pCDT -> operator=( INT_64(SvIV(pParams)) ); }
 				// Number
-				else if (SvNOK(pParams))
-				{
-#if ((PERL_API_VERSION == 8) || (PERL_API_VERSION == 6))
-					pCDT -> operator=( W_FLOAT( ((xpvnv *)(pParams -> sv_any)) -> xnv_nv ) );
-#elif (PERL_API_VERSION == 10)
-					pCDT -> operator=( W_FLOAT( ((xpvnv *)(pParams -> sv_any)) -> xnv_u.xnv_nv ) );
-#else
-    #error "This version of perl not supported yet!"
-#endif
-
-				}
+				else if (SvNOK(pParams)) { pCDT -> operator=( W_FLOAT(SvNV(pParams)) ); }
 				// String
 				else if (SvPOK(pParams))
 				{
@@ -745,7 +759,7 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 						}
 						else
 						{
-							pUplinkCDT -> operator[](sTMPKey) = 1;
+							pUplinkCDT -> operator[](sTMPKey) = UINT_64(1);
 						}
 					}
 				}
@@ -1164,8 +1178,11 @@ Bytecode::Bytecode(char * szFileName, int iFlag, const std::vector<std::string> 
 //fprintf(stderr, "Bytecode::Bytecode (%p)\n", this);
 	if (iFlag == C_BYTECODE_SOURCE)
 	{
+#if (!defined WIN32) && (!defined _WINDOWS)
 		struct stat oStat;
-
+#else
+		Stat_t oStat;
+#endif
 		if (stat(szFileName, &oStat) == 1)
 		{
 			throw CTPPLogicError("No such file");
@@ -1173,7 +1190,11 @@ Bytecode::Bytecode(char * szFileName, int iFlag, const std::vector<std::string> 
 		else
 		{
 			// Get file size
+#if (!defined WIN32) && (!defined _WINDOWS)
 			struct stat oStat;
+#else
+			Stat_t oStat;
+#endif
 			if (stat(szFileName, &oStat) == -1) { throw CTPPUnixException("stat", errno); }
 
 			iCoreSize = oStat.st_size;
