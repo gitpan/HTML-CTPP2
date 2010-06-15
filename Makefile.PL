@@ -42,51 +42,65 @@ my $CXX = 'g++';
 my $CC  = 'gcc';
 my $STDCPP = '-lstdc++';
 
-my $inc_dirs = "";	
-my $lib_dirs = "";	
+my $inc_dirs = "";
+my $lib_dirs = "";
 
-if ($^O eq 'solaris') { $CXX = 'CC'; $CC = 'CC'; $STDCPP = '-lCstd'; }
-elsif ($^O eq 'MSWin32') {	
+if    ($^O eq 'solaris') { $CXX = 'CC'; $CC = 'CC'; $STDCPP = '-lCstd'; }
+elsif ($^O eq 'MSWin32')
+{
 	$CXX = 'cl'; $CC = 'link'; $STDCPP = '';
 	my @s_incdir = {};
 	my @s_libdir = {};
-	if(defined $ENV{'INCLUDE'}) {
+	if(defined $ENV{'INCLUDE'})
+	{
 		@s_incdir = split(/;/, $ENV{'INCLUDE'});
-		foreach my $v (@s_incdir) {
-			if($v) {
+		foreach my $v (@s_incdir)
+		{
+			if($v)
+			{
 				$inc_dirs.= ' /I "'.$v.'" ';
-				push(@IncludeDirs, $v); 
+				push(@IncludeDirs, $v);
 			}
 		}
 	}
-	if(defined $ENV{'LIB'}) {
+	if(defined $ENV{'LIB'})
+	{
 		@s_libdir = split(/;/, $ENV{'LIB'});
-		foreach my $v (@s_libdir) {
+		foreach my $v (@s_libdir)
+		{
 			$lib_dirs .= ' /LIBPATH:"'.$v.'" ';
-			push(@LibDirs, $v); 
+			push(@LibDirs, $v);
 		}
 	}
-	if(defined $ENV{'PATH'}) {
+	if(defined $ENV{'PATH'})
+	{
 		@s_libdir = split(/;/, $ENV{'PATH'});
-		foreach my $v (@s_libdir) {
-			push(@LibDirs, $v); 
+		foreach my $v (@s_libdir)
+		{
+			push(@LibDirs, $v);
 		}
 	}
 }
 
-my $CTPP2IncludeDir = SearchDir("CTPP2.hpp", @IncludeDirs);
-unless ($CTPP2IncludeDir) { NeedToInstallCTPP("Cannot find header file CTPP2.hpp"); exit; }
+my $CTPP2IncludeDir = SearchDir("CDT.hpp", @IncludeDirs);
+unless ($CTPP2IncludeDir)
+{
+	NeedToInstallCTPP("Cannot find header file CDT.hpp");
+	exit;
+}
 
-if ($^O eq 'MSWin32') {
-
-    my $libfile = 'ctpp2l.lib';
+if ($^O eq 'MSWin32')
+{
+	my $libfile = 'ctpp2l.lib';
 	my $CTPP2LibDir     = SearchDir("ctpp2l.lib", @LibDirs);
-	unless ($CTPP2LibDir) {
-	    $libfile = 'ctpp2.lib';
+	unless ($CTPP2LibDir)
+	{
+		$libfile = 'ctpp2.lib';
 		$CTPP2LibDir     = SearchDir("ctpp2.lib", @LibDirs);
-		unless ($CTPP2LibDir) {
-				NeedToInstallCTPP("Cannot find shared library file ctpp2.lib");
-				exit;
+		unless ($CTPP2LibDir)
+		{
+			NeedToInstallCTPP("Cannot find shared library file ctpp2.lib");
+			exit;
 		}
 	}
 
@@ -105,10 +119,10 @@ if ($^O eq 'MSWin32') {
 		'clean'			=> { 'FILES' => '*.ct2' },
 		'TYPEMAPS'		=> ['perlobject.map'],
 		'AUTHOR'		=> 'Andrei V. Shetuhin <reki@reki.ru>'
-	);	
-
-} else {
-
+	);
+}
+else
+{
 	my $CTPP2LibDir     = SearchDir("libctpp2.so.2", @LibDirs);
 	unless ($CTPP2LibDir) { NeedToInstallCTPP("Cannot find shared library file libctpp2.so"); exit; }
 
@@ -124,7 +138,5 @@ if ($^O eq 'MSWin32') {
 		'clean'		=> { 'FILES' => '*.ct2' },
 		'TYPEMAPS'		=> ['perlobject.map'],
 		'AUTHOR'            => 'Andrei V. Shetuhin <reki@reki.ru>'
-	);	
-	
+	);
 }
-

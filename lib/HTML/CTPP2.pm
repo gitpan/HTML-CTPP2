@@ -17,7 +17,7 @@ require AutoLoader;
 
 );
 
-$VERSION = '2.5.12';
+$VERSION = '2.6.1';
 
 bootstrap HTML::CTPP2 $VERSION;
 
@@ -199,9 +199,13 @@ __END__;
     * __INNER__ - accommodates the number from the second to the pre-last
       iteration, otherwise undefined
 
+    * __OUTER__ - accommodates the number of first and last iteration, otherwise undefined
+
     * __ODD__ - the number of an odd iteration. For the even one - undefined.
 
     * __COUNTER__ - the number of current iteration.
+
+    * __RCOUNTER__ - whole number of the loop iterations minus the number of current iteration.
 
     * __EVEN__ - opposite to the __ODD__ variable.
 
@@ -296,6 +300,7 @@ __END__;
     * FORM_PARAM
     * GETTEXT (_)
     * HMAC_MD5
+    * HASH_ELEMENT
     * HREF_PARAM
     * HTMLESCAPE
     * ICONV
@@ -316,6 +321,7 @@ __END__;
     * RANDOM
     * SIZE
     * SUBSTR
+    * SPRINTF
     * TRUNCATE
     * URIESCAPE
     * URLESCAPE
@@ -475,7 +481,7 @@ http://ctpp.havoc.ru/    - for Russian speakers
 
 =head1 LICENSE
 
-  Copyright (c) 2006 - 2009 CTPP Team
+  Copyright (c) 2006 - 2010 CTPP Team
 
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions

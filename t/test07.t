@@ -33,4 +33,4 @@ ok( $Result eq "0YDQldCv0KA6INCf0YDQvtCy0LXRgNC60LAg0LrQvtC00LjRgNC+0LLQutC4IEtP
 %H = ("a" => "incorrect encoding мусор test");
 ok( $T -> param(\%H) == 0);
 $Result = encode_base64($T -> output($Bytecode, 'utf-8', 'utf-8'));
-ok( $Result eq "aW5jb3JyZWN0IGVuY29kaW5nICB0ZXN0Cg==\n");
+ok( $Result eq "OiBpbmNvcnJlY3QgZW5jb2RpbmcgIHRlc3QK\n");

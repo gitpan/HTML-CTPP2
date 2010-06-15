@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2006 - 2009 CTPP Team
+ * Copyright (c) 2006 - 2010 CTPP Team
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,7 +29,27 @@
  *
  * $CTPP$
  */
-#include <CTPP2.hpp>
+#include <CDT.hpp>
+#include <CTPP2Error.hpp>
+#include <CTPP2ErrorCodes.h>
+#include <CTPP2Exception.hpp>
+#include <CTPP2FileSourceLoader.hpp>
+#include <CTPP2JSONParser.hpp>
+#include <CTPP2Logger.hpp>
+#include <CTPP2Parser.hpp>
+#include <CTPP2ParserException.hpp>
+#include <CTPP2StringIconvOutputCollector.hpp>
+#include <CTPP2StringOutputCollector.hpp>
+#include <CTPP2SyscallFactory.hpp>
+#include <CTPP2VM.hpp>
+#include <CTPP2VMDebugInfo.hpp>
+#include <CTPP2VMDumper.hpp>
+#include <CTPP2VMException.hpp>
+#include <CTPP2VMStackException.hpp>
+#include <CTPP2VMExecutable.hpp>
+#include <CTPP2VMMemoryCore.hpp>
+#include <CTPP2VMOpcodeCollector.hpp>
+#include <CTPP2VMSTDLib.hpp>
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,13 +75,76 @@ extern "C" {
 #endif
 
 #if (!defined WIN32) && (!defined _WINDOWS)
-#include <dlfcn.h>
+    #include <dlfcn.h>
 #else
-#include <windows.h>
-#define strncasecmp strnicmp
+    #include <windows.h>
+    #define strncasecmp strnicmp
 #endif
 
-using CTPP::CTPPError;
+using namespace CTPP;
+
+#define C_BYTECODE_SOURCE 1
+#define C_TEMPLATE_SOURCE 2
+
+#define C_PREV_LEVEL_IS_HASH     1
+#define C_PREV_LEVEL_IS_UNKNOWN  2
+
+#define C_INIT_SYM_PREFIX "_init"
+
+//
+// PerlLogger
+//
+class PerlLogger:
+  public Logger
+{
+public:
+
+	/**
+	  @brief A destructor
+	*/
+	~PerlLogger() throw();
+private:
+
+	/**
+	  @brief Write message to log file
+	  @param iPriority - priority level
+	  @param szString - message to store in file
+	  @return 0 - if success, -1 - otherwise
+	*/
+	INT_32 WriteLog(const UINT_32  iPriority,
+	                CCHAR_P        szString,
+	                const UINT_32  iStringLen);
+};
+
+class PerlOutputCollector:
+  public OutputCollector
+{
+public:
+	/**
+	  @brief Constructor
+	*/
+	PerlOutputCollector(SV * pISVData);
+
+	/**
+	  @brief A destructor
+	*/
+	~PerlOutputCollector() throw();
+
+	/**
+	  @brief Collect data
+	  @param vData - data to store
+	  @param iDataLength - data length
+	  @return 0 - if success, -1 - if any error occured
+	*/
+	INT_32 Collect(const void     * vData,
+	               const UINT_32    iDataLength);
+
+
+private:
+	/** Perl string */
+	SV   * pSVData;
+};
+
 
 // FWD
 class Bytecode;
@@ -73,12 +156,12 @@ class CTPP2
 {
 public:
 	// Constructor
-	CTPP2(const UINT_32      & iArgStackSize,
-	      const UINT_32      & iCodeStackSize,
-	      const UINT_32      & iStepsLimit,
-	      const UINT_32      & iMaxFunctions,
-	      const std::string  & sSourceCharset,
-	      const std::string  & sDestCharset);
+	CTPP2(const UINT_32         iArgStackSize,
+	      const UINT_32         iCodeStackSize,
+	      const UINT_32         iStepsLimit,
+	      const UINT_32         iMaxFunctions,
+	      const STLW::string  & sSourceCharset,
+	      const STLW::string  & sDestCharset);
 
 	// Destructor
 	~CTPP2() throw();
@@ -96,12 +179,12 @@ public:
 	int json_param(SV * pParams);
 
 	// Get output
-	SV * output(Bytecode     * pBytecode,
-	            std::string    sSourceCharset,
-	            std::string    sDestCharset);
+	SV * output(Bytecode      * pBytecode,
+	            STLW::string    sSourceCharset,
+	            STLW::string    sDestCharset);
 
 	// Include directories
-	int include_dirs(SV * aIncludeDirs);
+	int include_dirs(AV * aIncludeDirs);
 
 	// Load bytecode
 	Bytecode * load_bytecode(char * szFileName);
@@ -125,7 +208,7 @@ private:
 	typedef CTPP::SyscallHandler * ((*InitPtr)());
 
 	struct HandlerRefsSort:
-	  public std::binary_function<std::string, std::string, bool>
+	  public STLW::binary_function<STLW::string, STLW::string, bool>
 	{
 		/**
 		  @brief comparison operator
@@ -133,7 +216,7 @@ private:
 		  @param y - first argument
 		  @return true if x > y
 		*/
-		inline bool operator() (const std::string &x, const std::string &y) const
+		inline bool operator() (const STLW::string & x, const STLW::string & y) const
 		{
 			return (strcasecmp(x.c_str(), y.c_str()) > 0);
 		}
@@ -143,15 +226,15 @@ private:
 	struct LoadableUDF
 	{
 		// Function file name
-		std::string             filename;
+		STLW::string            filename;
 		// Function name
-		std::string             udf_name;
+		STLW::string            udf_name;
 		// Function instance
 		CTPP::SyscallHandler  * udf;
 	};
 
 	// List of include directories
-	std::map<std::string, LoadableUDF, HandlerRefsSort> mExtraFn;
+	STLW::map<STLW::string, LoadableUDF, HandlerRefsSort> mExtraFn;
 	// Execution limit
 	INT_32                               iStepsLimit;
 	// Standard library factory
@@ -161,27 +244,25 @@ private:
 	// Virtual machine
 	CTPP::VM                           * pVM;
 	// List of include directories
-	std::vector<std::string>             vIncludeDirs;
+	STLW::vector<STLW::string>           vIncludeDirs;
 	// Error Description
 	CTPPError                            oCTPPError;
 	// Source charset
-	std::string                          sSrcEnc;
+	STLW::string                         sSrcEnc;
 	// Destination charset
-	std::string                          sDstEnc;
+	STLW::string                         sDstEnc;
 	// Use charset recoder or not
 	bool                                 bUseRecoder;
 	// Parse given parameters
-	int param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const std::string & sKey, int iPrevIsHash, int & iProcessed);
+	int param(SV * pParams,
+	          CTPP::CDT           * pCDT,
+	          CTPP::CDT           * pUplinkCDT,
+	          const STLW::string  & sKey,
+	          int                   iPrevIsHash,
+	          int                 & iProcessed);
 
 };
 
-#define C_BYTECODE_SOURCE 1
-#define C_TEMPLATE_SOURCE 2
-
-#define C_PREV_LEVEL_IS_HASH     1
-#define C_PREV_LEVEL_IS_UNKNOWN  2
-
-#define C_INIT_SYM_PREFIX "_init"
 
 //
 // Bytecode object
@@ -206,10 +287,10 @@ private:
 	Bytecode & operator=(const Bytecode & oRhs);
 
 	// Create bytecode object from text block
-	Bytecode(SV * sText, const std::vector<std::string> & vIncludeDirs);
+	Bytecode(SV * sText, const STLW::vector<STLW::string> & vIncludeDirs);
 
 	// Create bytecode object
-	Bytecode(char * szFileName, int iFlag, const std::vector<std::string> & vIncludeDirs);
+	Bytecode(char * szFileName, int iFlag, const STLW::vector<STLW::string> & vIncludeDirs);
 
 	// Memory core
 	CTPP::VMExecutable   * pCore;
@@ -230,7 +311,7 @@ public:
 	/**
 	  @brief Constructor
 	*/
-	CTPP2TextSourceLoader(const std::string & sTemplate);
+	CTPP2TextSourceLoader(const STLW::string & sTemplate);
 
 	/**
 	  @brief A destructor
@@ -240,10 +321,10 @@ public:
 	/**
 	  @brief Set include directories
 	*/
-	void SetIncludeDirs(const std::vector<std::string> & vIIncludeDirs);
+	void SetIncludeDirs(const STLW::vector<STLW::string> & vIIncludeDirs);
 
 private:
-	const std::string     sTemplate;
+	const STLW::string     sTemplate;
 
 	CTPP::CTPP2FileSourceLoader oFileLoader;
 
@@ -268,26 +349,99 @@ private:
 	CTPP2SourceLoader * Clone();
 };
 
+// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Class PerlOutputCollector
+//
+
+//
+// Constructor
+//
+PerlOutputCollector::PerlOutputCollector(SV * pISVData): pSVData(pISVData)
+{
+	;;
+}
+
+//
+// A destructor
+//
+PerlOutputCollector::~PerlOutputCollector() throw()
+{
+	;;
+}
+
+//
+// Collect data
+//
+INT_32 PerlOutputCollector::Collect(const void    * vData,
+                                    const UINT_32   iDataLength)
+{
+	sv_catpvn(pSVData, (const char *)vData, iDataLength);
+
+return 0;
+}
+
+// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Class PerlLogger
+//
+
+//
+// A destructor
+//
+PerlLogger::~PerlLogger() throw()
+{
+	;;
+}
+
+//
+// Write message to log file
+//
+INT_32 PerlLogger::WriteLog(const UINT_32  iPriority,
+                            CCHAR_P        szString,
+                            const UINT_32  iStringLen)
+{
+	warn("ERROR: %.*s", iStringLen, szString);
+}
+
+//
+// Constructor
+//
+CTPPError::CTPPError(const STLW::string  & sTemplateName,
+                     const STLW::string  & sErrorDescr,
+                     const UINT_32         iErrrorCode,
+                     const UINT_32         iLine,
+                     const UINT_32         iPos,
+                     const UINT_32         iIP): template_name(sTemplateName),
+                                                 error_descr(sErrorDescr),
+                                                 error_code(iErrrorCode),
+                                                 line(iLine),
+                                                 pos(iPos),
+                                                 ip(iIP)
+{
+	;;
+}
+
 // CTPP2 Implementation //////////////////////////////////////////
 
 //
 // Constructor
 //
-CTPP2::CTPP2(const UINT_32      & iArgStackSize,
-             const UINT_32      & iCodeStackSize,
-             const UINT_32      & iStepsLimit,
-             const UINT_32      & iMaxFunctions,
-             const std::string  & sSourceCharset,
-             const std::string  & sDestCharset): pSyscallFactory(NULL), pCDT(NULL), pVM(NULL)
+CTPP2::CTPP2(const UINT_32         iArgStackSize,
+             const UINT_32         iCodeStackSize,
+             const UINT_32         iStepsLimit,
+             const UINT_32         iMaxFunctions,
+             const STLW::string  & sSourceCharset,
+             const STLW::string  & sDestCharset): pSyscallFactory(NULL), pCDT(NULL), pVM(NULL)
 {
 	using namespace CTPP;
 	try
 	{
-		pCDT            = new CTPP::CDT(CTPP::CDT::HASH_VAL);
+		pCDT            = new CDT(CDT::HASH_VAL);
 		pSyscallFactory = new SyscallFactory(iMaxFunctions);
 		STDLibInitializer::InitLibrary(*pSyscallFactory);
 
-		pVM             = new VM(*pSyscallFactory, iArgStackSize, iCodeStackSize, iStepsLimit);
+		pVM             = new VM(pSyscallFactory, iArgStackSize, iCodeStackSize, iStepsLimit);
 
 		if (sSourceCharset.size() && sDestCharset.size())
 		{
@@ -323,7 +477,7 @@ CTPP2::~CTPP2() throw()
 		// Destroy standard library
 		STDLibInitializer::DestroyLibrary(*pSyscallFactory);
 
-		std::map<std::string, LoadableUDF, HandlerRefsSort>::iterator itmExtraFn = mExtraFn.begin();
+		STLW::map<STLW::string, LoadableUDF, HandlerRefsSort>::iterator itmExtraFn = mExtraFn.begin();
 		while (itmExtraFn != mExtraFn.end())
 		{
 			pSyscallFactory -> RemoveHandler(itmExtraFn -> second.udf -> GetName());
@@ -347,11 +501,11 @@ CTPP2::~CTPP2() throw()
 //
 int CTPP2::load_udf(char * szLibraryName, char * szInstanceName)
 {
-	std::map<std::string, LoadableUDF, HandlerRefsSort>::iterator itmExtraFn = mExtraFn.find(szInstanceName);
+	STLW::map<STLW::string, LoadableUDF, HandlerRefsSort>::iterator itmExtraFn = mExtraFn.find(szInstanceName);
 	// Function already present?
 	if (itmExtraFn != mExtraFn.end() || pSyscallFactory -> GetHandlerByName(szInstanceName) != NULL)
 	{
-		oCTPPError = CTPPError("", std::string("Function `") + szInstanceName + "` already present", CTPP_DATA_ERROR | CTPP_LOGIC_ERROR, 0, 0, 0);
+		oCTPPError = CTPPError("", STLW::string("Function `") + szInstanceName + "` already present", CTPP_DATA_ERROR | CTPP_LOGIC_ERROR, 0, 0, 0);
  		warn("ERROR in load_udf(): Function `%s` already present", szInstanceName);
 		return -1;
 	}
@@ -366,17 +520,17 @@ int CTPP2::load_udf(char * szLibraryName, char * szInstanceName)
 	if (vLibrary == NULL)
 	{
 #if (!defined WIN32) && (!defined _WINDOWS)
-		oCTPPError = CTPPError("", std::string("Cannot load library `") + szLibraryName + "`: `" + dlerror() + "`", CTPP_DATA_ERROR | CTPP_LOGIC_ERROR, 0, 0, 0);
+		oCTPPError = CTPPError("", STLW::string("Cannot load library `") + szLibraryName + "`: `" + dlerror() + "`", CTPP_DATA_ERROR | CTPP_LOGIC_ERROR, 0, 0, 0);
 		warn("ERROR in load_udf(): Cannot load library `%s`: `%s`", szLibraryName, dlerror());
 #else
 		LPVOID lpMsgBuf = NULL;
 		DWORD dw = GetLastError();
 		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf, 0, NULL);
-		oCTPPError = CTPPError("", std::string("Cannot load library `") + szLibraryName + "` `" + (char*)lpMsgBuf + "` `", CTPP_DATA_ERROR | CTPP_LOGIC_ERROR, 0, 0, 0);
+		oCTPPError = CTPPError("", STLW::string("Cannot load library `") + szLibraryName + "` `" + (char*)lpMsgBuf + "` `", CTPP_DATA_ERROR | CTPP_LOGIC_ERROR, 0, 0, 0);
 		warn("ERROR in load_udf(): Cannot load library `%s`: (%d) %s", szLibraryName, dw, (char*)lpMsgBuf);
 		if (lpMsgBuf) {
 			LocalFree(lpMsgBuf);
-		}		
+		}
 #endif
 
 		return -1;
@@ -401,7 +555,7 @@ int CTPP2::load_udf(char * szLibraryName, char * szInstanceName)
 
 	if (vTMPPtr == NULL)
 	{
-		oCTPPError = CTPPError("", std::string("in `") + szLibraryName + "`: cannot find function `" + szInstanceName + "`");
+		oCTPPError = CTPPError("", STLW::string("in `") + szLibraryName + "`: cannot find function `" + szInstanceName + "`");
 		warn("ERROR in load_udf(): in `%s`: cannot find function `%s`", szLibraryName, szInstanceName);
 		return -1;
 	}
@@ -419,7 +573,7 @@ int CTPP2::load_udf(char * szLibraryName, char * szInstanceName)
 	oLoadableUDF.udf_name = szInstanceName;
 	oLoadableUDF.udf      = pUDF;
 
-	mExtraFn.insert(std::pair<std::string, LoadableUDF>(szInstanceName, oLoadableUDF));
+	mExtraFn.insert(STLW::pair<STLW::string, LoadableUDF>(szInstanceName, oLoadableUDF));
 
 	pSyscallFactory -> RegisterHandler(pUDF);
 
@@ -510,7 +664,7 @@ int CTPP2::json_param(SV * pParams)
 	}
 	catch (CTPPParserOperatorsMismatch  & e)
 	{
-		oCTPPError = CTPPError("", std::string("Expected ") + e.Expected() + ", but found " + e.Found(), CTPP_COMPILER_ERROR | CTPP_SYNTAX_ERROR, e.GetLine(), e.GetLinePos(), 0);
+		oCTPPError = CTPPError("", STLW::string("Expected ") + e.Expected() + ", but found " + e.Found(), CTPP_COMPILER_ERROR | CTPP_SYNTAX_ERROR, e.GetLine(), e.GetLinePos(), 0);
 	}
 	catch (CTPPUnixException            & e) { oCTPPError = CTPPError("", e.what(), CTPP_COMPILER_ERROR | CTPP_UNIX_ERROR, 0, 0, 0); }
 	catch (CDTRangeException            & e) { oCTPPError = CTPPError("", e.what(), CTPP_COMPILER_ERROR | CTPP_RANGE_ERROR, 0, 0, 0); }
@@ -518,7 +672,7 @@ int CTPP2::json_param(SV * pParams)
 	catch (CDTTypeCastException         & e) { oCTPPError = CTPPError("", e.what(), CTPP_COMPILER_ERROR | CTPP_TYPE_CAST_ERROR, 0, 0, 0); }
 	catch (CTPPLogicError               & e) { oCTPPError = CTPPError("", e.what(), CTPP_COMPILER_ERROR | CTPP_LOGIC_ERROR, 0, 0, 0); }
 	catch (CTPPException                & e) { oCTPPError = CTPPError("", e.what(), CTPP_COMPILER_ERROR | CTPP_UNKNOWN_ERROR, 0, 0, 0); }
-	catch (std::exception               & e) { oCTPPError = CTPPError("", e.what(), CTPP_COMPILER_ERROR | STL_UNKNOWN_ERROR, 0, 0, 0); }
+	catch (STLW::exception               & e) { oCTPPError = CTPPError("", e.what(), CTPP_COMPILER_ERROR | STL_UNKNOWN_ERROR, 0, 0, 0); }
 	catch (...)                              { oCTPPError = CTPPError("", "Unknown Error", CTPP_COMPILER_ERROR | STL_UNKNOWN_ERROR, 0, 0, 0); }
 
 	// Error occured
@@ -558,7 +712,7 @@ int CTPP2::param(SV * pParams)
 	catch (CDTTypeCastException   & e) { oCTPPError = CTPPError("", e.what(), CTPP_DATA_ERROR | CTPP_TYPE_CAST_ERROR,     0, 0, 0); }
 	catch (CTPPLogicError         & e) { oCTPPError = CTPPError("", e.what(), CTPP_DATA_ERROR | CTPP_LOGIC_ERROR,         0, 0, 0); }
 	catch (CTPPException          & e) { oCTPPError = CTPPError("", e.what(), CTPP_DATA_ERROR | CTPP_UNKNOWN_ERROR,       0, 0, 0); }
-	catch (std::exception         & e) { oCTPPError = CTPPError("", e.what(), CTPP_DATA_ERROR | STL_UNKNOWN_ERROR,        0, 0, 0); }
+	catch (STLW::exception         & e) { oCTPPError = CTPPError("", e.what(), CTPP_DATA_ERROR | STL_UNKNOWN_ERROR,        0, 0, 0); }
 	catch (...)                        { oCTPPError = CTPPError("", "Unknown Error", CTPP_DATA_ERROR | STL_UNKNOWN_ERROR, 0, 0, 0); }
 
 	// Error occured
@@ -574,7 +728,7 @@ return iOK;
 //
 // Emit paramaters recursive
 //
-int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const std::string & sKey, int iPrevIsHash, int & iProcessed)
+int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const STLW::string & sKey, int iPrevIsHash, int & iProcessed)
 {
 	iProcessed = 0;
 	if (pParams == NULL) { return 0; }
@@ -588,17 +742,11 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 			break;
 		// 1
 		case SVt_IV:
-			if (SvIOK(pParams))
-			{
-				pCDT -> operator=( INT_64(SvIV(pParams)) );
-			}
+			if (SvIOK(pParams)) { pCDT -> operator=( INT_64(SvIV(pParams)) ); }
 			break;
 		// 2
 		case SVt_NV:
-			if (SvNOK(pParams))
-			{
-				pCDT -> operator=( W_FLOAT(SvNV(pParams)) );
-			}
+			if (SvNOK(pParams)) { pCDT -> operator=( W_FLOAT(SvNV(pParams)) ); }
 			break;
 		// 3
 		case SVt_RV:
@@ -615,7 +763,7 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 #else
 					char * szValue = SvPV(pParams, iLen);
 #endif
-					pCDT -> operator=(std::string(szValue, iLen));
+					pCDT -> operator=(STLW::string(szValue, iLen));
 				}
 				else if (SvROK(pParams))
 				{
@@ -642,7 +790,7 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 #else
 					char * szValue = SvPV(pParams, iLen);
 #endif
-					pCDT -> operator=(std::string(szValue, iLen));
+					pCDT -> operator=(STLW::string(szValue, iLen));
 				}
 				// Reference
 				else if (SvROK(pParams))
@@ -669,19 +817,19 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 				// Stub for unknown Perl types
 				else
 				{
-					pCDT -> operator=(std::string("SVt_PVMG: "));
+					pCDT -> operator=(STLW::string("SVt_PVMG: "));
 					pCDT -> operator+=(UINT_32(SvFLAGS(pParams)));
 				}
 			break;
 		// 8/
 #if ((PERL_API_VERSION == 8) || (PERL_API_VERSION == 6))
 		case SVt_PVBM:
-			pCDT -> operator=(std::string("*PVBM*", 6)); // Stub!
+			pCDT -> operator=(STLW::string("*PVBM*", 6)); // Stub!
 			break;
 #endif
 		// 9
 		case SVt_PVLV:
-			pCDT -> operator=(std::string("*PVLV*", 6)); // Stub!
+			pCDT -> operator=(STLW::string("*PVLV*", 6)); // Stub!
 			break;
 		// 10
 		case SVt_PVAV:
@@ -721,7 +869,7 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 						SV   * pValue = hv_iterval(pHash, pHashEntry);
 						if (pValue != NULL)
 						{
-							std::string sTMPKey(szKey, iKeyLen);
+							STLW::string sTMPKey(szKey, iKeyLen);
 
 							CTPP::CDT oTMP;
 
@@ -746,7 +894,7 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 						char * szKey  = hv_iterkey(pHashEntry, &iKeyLen);
 						SV   * pValue = hv_iterval(pHash, pHashEntry);
 
-						std::string sTMPKey(sKey);
+						STLW::string sTMPKey(sKey);
 						sTMPKey.append(".", 1);
 						sTMPKey.append(szKey, iKeyLen);
 
@@ -833,11 +981,11 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const s
 			break;
 		// 14
 		case SVt_PVFM:
-			pCDT -> operator=(std::string("*PVFM*", 6)); // Stub!
+			pCDT -> operator=(STLW::string("*PVFM*", 6)); // Stub!
 			break;
 		// 15
 		case SVt_PVIO:
-			pCDT -> operator=(std::string("*PVIO*", 6)); // Stub!
+			pCDT -> operator=(STLW::string("*PVIO*", 6)); // Stub!
 			break;
 		default:
 			;;
@@ -850,8 +998,8 @@ return 0;
 // Output
 //
 SV * CTPP2::output(Bytecode     * pBytecode,
-                   std::string    sSourceCharset,
-                   std::string    sDestCharset)
+                   STLW::string    sSourceCharset,
+                   STLW::string    sDestCharset)
 {
 	using namespace CTPP;
 
@@ -859,7 +1007,7 @@ SV * CTPP2::output(Bytecode     * pBytecode,
 	UINT_32     iIP = 0;
 	try
 	{
-		std::string sResult;
+
 
 		if (bUseRecoder)
 		{
@@ -869,18 +1017,26 @@ SV * CTPP2::output(Bytecode     * pBytecode,
 
 		if (!sSourceCharset.empty() && !sDestCharset.empty())
 		{
+			STLW::string sResult;
 			StringIconvOutputCollector oOutputCollector(sResult, sSourceCharset, sDestCharset, 3);
-			pVM -> Init(oOutputCollector, *(pBytecode -> pVMMemoryCore));
-			pVM -> Run(*(pBytecode -> pVMMemoryCore), iIP, *pCDT);
+			PerlLogger          oLogger;
+
+			pVM -> Init(pBytecode -> pVMMemoryCore, &oOutputCollector, &oLogger);
+			pVM -> Run(pBytecode -> pVMMemoryCore, &oOutputCollector, iIP, *pCDT, &oLogger);
+
+			return newSVpv(sResult.data(), sResult.length());
 		}
 		else
 		{
-			StringOutputCollector oOutputCollector(sResult);
-			pVM -> Init(oOutputCollector, *(pBytecode -> pVMMemoryCore));
-			pVM -> Run(*(pBytecode -> pVMMemoryCore), iIP, *pCDT);
-		}
+			SV * pSV = newSVpv("", 0);
+			PerlOutputCollector oOutputCollector(pSV);
+			PerlLogger          oLogger;
 
-		return newSVpv(sResult.data(), sResult.length());
+			pVM -> Init(pBytecode -> pVMMemoryCore, &oOutputCollector, &oLogger);
+			pVM -> Run(pBytecode -> pVMMemoryCore, &oOutputCollector, iIP, *pCDT, &oLogger);
+
+			return pSV;
+		}
 	}
 	catch (ZeroDivision           & e) { oCTPPError = CTPPError(e.GetSourceName(), e.what(), CTPP_VM_ERROR | CTPP_ZERO_DIVISION_ERROR,           VMDebugInfo(e.GetDebugInfo()).GetLine(), VMDebugInfo(e.GetDebugInfo()).GetLinePos(), e.GetIP()); }
 	catch (ExecutionLimitReached  & e) { oCTPPError = CTPPError(e.GetSourceName(), e.what(), CTPP_VM_ERROR | CTPP_EXECUTION_LIMIT_REACHED_ERROR, VMDebugInfo(e.GetDebugInfo()).GetLine(), VMDebugInfo(e.GetDebugInfo()).GetLinePos(), e.GetIP()); }
@@ -893,7 +1049,7 @@ SV * CTPP2::output(Bytecode     * pBytecode,
 		}
 		else
 		{
-			oCTPPError = CTPPError(e.GetSourceName(), std::string("Unsupported syscall: \"") + e.what() + "\"", CTPP_VM_ERROR | CTPP_INVALID_SYSCALL_ERROR,         VMDebugInfo(e.GetDebugInfo()).GetLine(), VMDebugInfo(e.GetDebugInfo()).GetLinePos(), e.GetIP());
+			oCTPPError = CTPPError(e.GetSourceName(), STLW::string("Unsupported syscall: \"") + e.what() + "\"", CTPP_VM_ERROR | CTPP_INVALID_SYSCALL_ERROR,         VMDebugInfo(e.GetDebugInfo()).GetLine(), VMDebugInfo(e.GetDebugInfo()).GetLinePos(), e.GetIP());
 		}
 	}
 	catch (IllegalOpcode          & e) { oCTPPError = CTPPError(e.GetSourceName(), e.what(), CTPP_VM_ERROR | CTPP_ILLEGAL_OPCODE_ERROR,          VMDebugInfo(e.GetDebugInfo()).GetLine(), VMDebugInfo(e.GetDebugInfo()).GetLinePos(), e.GetIP()); }
@@ -912,7 +1068,7 @@ SV * CTPP2::output(Bytecode     * pBytecode,
 	}
 
 	catch (CTPPException          & e) { oCTPPError = CTPPError("", e.what(), CTPP_VM_ERROR | CTPP_UNKNOWN_ERROR,                 0, 0, iIP); }
-	catch (std::exception         & e) { oCTPPError = CTPPError("", e.what(), CTPP_VM_ERROR | STL_UNKNOWN_ERROR,                  0, 0, iIP); }
+	catch (STLW::exception         & e) { oCTPPError = CTPPError("", e.what(), CTPP_VM_ERROR | STL_UNKNOWN_ERROR,                  0, 0, iIP); }
 	catch (...)                        { oCTPPError = CTPPError("", "Unknown Error", CTPP_VM_ERROR | STL_UNKNOWN_ERROR,           0, 0, iIP); }
 
 	// Error occured
@@ -931,27 +1087,28 @@ SV * CTPP2::output(Bytecode     * pBytecode,
 		                                                     oCTPPError.error_code,
 		                                                     oCTPPError.ip);
 	}
+
 return newSVpv("", 0);
 }
 
 //
 // Include directories
 //
-int CTPP2::include_dirs(SV * aIncludeDirs)
+int CTPP2::include_dirs(AV * aIncludeDirs)
 {
-	if (SvTYPE(aIncludeDirs) == SVt_RV) { aIncludeDirs = SvRV(aIncludeDirs); }
-
-	if (SvTYPE(aIncludeDirs) != SVt_PVAV)
-	{
-		oCTPPError = CTPPError("", "ERROR in include_dirs(): Only ARRAY of strings accepted", CTPP_DATA_ERROR | CTPP_LOGIC_ERROR, 0, 0, 0);
-		warn("ERROR in include_dirs(): Only ARRAY of strings accepted");
-		return -1;
-	}
-
+//	if (SvROK(aIncludeDirs)) { aIncludeDirs = SvRV(aIncludeDirs); }
+//
+//	if (SvTYPE(aIncludeDirs) != SVt_PVAV)
+//	{
+//		oCTPPError = CTPPError("", "ERROR in include_dirs(): Only ARRAY of strings accepted", CTPP_DATA_ERROR | CTPP_LOGIC_ERROR, 0, 0, 0);
+//		warn("ERROR in include_dirs(): Only ARRAY of strings accepted");
+//		return -1;
+//	}
+//
 	AV * pArray = (AV *)(aIncludeDirs);
 	I32 iArraySize = av_len(pArray);
 
-	std::vector<std::string> vTMP;
+	STLW::vector<STLW::string> vTMP;
 
 	for(I32 iI = 0; iI <= iArraySize; ++iI)
 	{
@@ -975,7 +1132,7 @@ int CTPP2::include_dirs(SV * aIncludeDirs)
 #else
 			char * szValue = SvPV(pElement, iLen);
 #endif
-			vTMP.push_back(std::string(szValue, iLen));
+			vTMP.push_back(STLW::string(szValue, iLen));
 		}
 	}
 	vIncludeDirs.swap(vTMP);
@@ -999,7 +1156,7 @@ Bytecode * CTPP2::load_bytecode(char * szFileName)
 	catch (CDTTypeCastException   & e) { oCTPPError = CTPPError("", e.what(), CTPP_DATA_ERROR | CTPP_TYPE_CAST_ERROR,               0, 0, 0); }
 	catch (CTPPLogicError         & e) { oCTPPError = CTPPError("", e.what(), CTPP_DATA_ERROR | CTPP_LOGIC_ERROR,                   0, 0, 0); }
 	catch (CTPPException          & e) { oCTPPError = CTPPError("", e.what(), CTPP_DATA_ERROR | CTPP_UNKNOWN_ERROR,                 0, 0, 0); }
-	catch (std::exception         & e) { oCTPPError = CTPPError("", e.what(), CTPP_DATA_ERROR | STL_UNKNOWN_ERROR,                  0, 0, 0); }
+	catch (STLW::exception        & e) { oCTPPError = CTPPError("", e.what(), CTPP_DATA_ERROR | STL_UNKNOWN_ERROR,                  0, 0, 0); }
 	catch (...)                        { oCTPPError = CTPPError("", "Unknown Error", CTPP_DATA_ERROR | STL_UNKNOWN_ERROR,           0, 0, 0); }
 
 	// Error occured
@@ -1026,7 +1183,7 @@ Bytecode * CTPP2::parse_template(char * szFileName)
 	}
 	catch (CTPPParserOperatorsMismatch  & e)
 	{
-		oCTPPError = CTPPError(szFileName, std::string("Expected ") + e.Expected() + ", but found " + e.Found(), CTPP_COMPILER_ERROR | CTPP_SYNTAX_ERROR, e.GetLine(), e.GetLinePos(), 0);
+		oCTPPError = CTPPError(szFileName, STLW::string("Expected ") + e.Expected() + ", but found " + e.Found(), CTPP_COMPILER_ERROR | CTPP_SYNTAX_ERROR, e.GetLine(), e.GetLinePos(), 0);
 	}
 	catch (CTPPUnixException            & e) { oCTPPError = CTPPError(szFileName, e.what(), CTPP_COMPILER_ERROR | CTPP_UNIX_ERROR,                    0, 0, 0); }
 	catch (CDTRangeException            & e) { oCTPPError = CTPPError(szFileName, e.what(), CTPP_COMPILER_ERROR | CTPP_RANGE_ERROR,                   0, 0, 0); }
@@ -1034,7 +1191,7 @@ Bytecode * CTPP2::parse_template(char * szFileName)
 	catch (CDTTypeCastException         & e) { oCTPPError = CTPPError(szFileName, e.what(), CTPP_COMPILER_ERROR | CTPP_TYPE_CAST_ERROR,               0, 0, 0); }
 	catch (CTPPLogicError               & e) { oCTPPError = CTPPError(szFileName, e.what(), CTPP_COMPILER_ERROR | CTPP_LOGIC_ERROR,                   0, 0, 0); }
 	catch (CTPPException                & e) { oCTPPError = CTPPError(szFileName, e.what(), CTPP_COMPILER_ERROR | CTPP_UNKNOWN_ERROR,                 0, 0, 0); }
-	catch (std::exception               & e) { oCTPPError = CTPPError(szFileName, e.what(), CTPP_COMPILER_ERROR | STL_UNKNOWN_ERROR,                  0, 0, 0); }
+	catch (STLW::exception               & e) { oCTPPError = CTPPError(szFileName, e.what(), CTPP_COMPILER_ERROR | STL_UNKNOWN_ERROR,                  0, 0, 0); }
 	catch (...)                              { oCTPPError = CTPPError(szFileName, "Unknown Error", CTPP_COMPILER_ERROR | STL_UNKNOWN_ERROR,           0, 0, 0); }
 
 	// Error occured
@@ -1063,7 +1220,7 @@ Bytecode * CTPP2::parse_text(SV * sText)
 	}
 	catch (CTPPParserOperatorsMismatch  & e)
 	{
-		oCTPPError = CTPPError("direct source", std::string("Expected ") + e.Expected() + ", but found " + e.Found(), CTPP_COMPILER_ERROR | CTPP_SYNTAX_ERROR, e.GetLine(), e.GetLinePos(), 0);
+		oCTPPError = CTPPError("direct source", STLW::string("Expected ") + e.Expected() + ", but found " + e.Found(), CTPP_COMPILER_ERROR | CTPP_SYNTAX_ERROR, e.GetLine(), e.GetLinePos(), 0);
 	}
 	catch (CTPPUnixException            & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | CTPP_UNIX_ERROR,                    0, 0, 0); }
 	catch (CDTRangeException            & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | CTPP_RANGE_ERROR,                   0, 0, 0); }
@@ -1071,7 +1228,7 @@ Bytecode * CTPP2::parse_text(SV * sText)
 	catch (CDTTypeCastException         & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | CTPP_TYPE_CAST_ERROR,               0, 0, 0); }
 	catch (CTPPLogicError               & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | CTPP_LOGIC_ERROR,                   0, 0, 0); }
 	catch (CTPPException                & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | CTPP_UNKNOWN_ERROR,                 0, 0, 0); }
-	catch (std::exception               & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | STL_UNKNOWN_ERROR,                  0, 0, 0); }
+	catch (STLW::exception               & e) { oCTPPError = CTPPError("direct source", e.what(), CTPP_COMPILER_ERROR | STL_UNKNOWN_ERROR,                  0, 0, 0); }
 	catch (...)                              { oCTPPError = CTPPError("direct source", "Unknown Error", CTPP_COMPILER_ERROR | STL_UNKNOWN_ERROR,           0, 0, 0); }
 
 	// Error occured
@@ -1091,7 +1248,7 @@ SV * CTPP2::dump_params()
 {
 	try
 	{
-		std::string sTMP = pCDT -> RecursiveDump();
+		STLW::string sTMP = pCDT -> RecursiveDump();
 		return newSVpv(sTMP.data(), sTMP.length());
 	}
 	catch(...)
@@ -1123,7 +1280,7 @@ return newRV_noinc((SV*) pRetVal);
 //
 // Constructor
 //
-Bytecode::Bytecode(SV * sText, const std::vector<std::string> & vIncludeDirs): pCore(NULL), pVMMemoryCore(NULL)
+Bytecode::Bytecode(SV * sText, const STLW::vector<STLW::string> & vIncludeDirs): pCore(NULL), pVMMemoryCore(NULL)
 {
 	using namespace CTPP;
 
@@ -1137,7 +1294,7 @@ Bytecode::Bytecode(SV * sText, const std::vector<std::string> & vIncludeDirs): p
 #endif
 
 	// Load template
-	CTPP2TextSourceLoader oSourceLoader(std::string(szValue, iLen));
+	CTPP2TextSourceLoader oSourceLoader(STLW::string(szValue, iLen));
 	oSourceLoader.SetIncludeDirs(vIncludeDirs);
 
 	// Compiler runtime
@@ -1172,7 +1329,7 @@ Bytecode::Bytecode(SV * sText, const std::vector<std::string> & vIncludeDirs): p
 //
 // Constructor
 //
-Bytecode::Bytecode(char * szFileName, int iFlag, const std::vector<std::string> & vIncludeDirs): pCore(NULL), pVMMemoryCore(NULL)
+Bytecode::Bytecode(char * szFileName, int iFlag, const STLW::vector<STLW::string> & vIncludeDirs): pCore(NULL), pVMMemoryCore(NULL)
 {
 	using namespace CTPP;
 //fprintf(stderr, "Bytecode::Bytecode (%p)\n", this);
@@ -1293,7 +1450,7 @@ Bytecode::~Bytecode() throw()
 //
 // Constructor
 //
-CTPP2TextSourceLoader::CTPP2TextSourceLoader(const std::string & sITemplate): sTemplate(sITemplate)
+CTPP2TextSourceLoader::CTPP2TextSourceLoader(const STLW::string & sITemplate): sTemplate(sITemplate)
 {
 	;;
 }
@@ -1301,7 +1458,7 @@ CTPP2TextSourceLoader::CTPP2TextSourceLoader(const std::string & sITemplate): sT
 //
 // Set include directories
 //
-void CTPP2TextSourceLoader::SetIncludeDirs(const std::vector<std::string> & vIIncludeDirs) { return oFileLoader.SetIncludeDirs(vIIncludeDirs); }
+void CTPP2TextSourceLoader::SetIncludeDirs(const STLW::vector<STLW::string> & vIIncludeDirs) { return oFileLoader.SetIncludeDirs(vIIncludeDirs); }
 
 //
 // Load template with specified name
@@ -1340,8 +1497,8 @@ CTPP2::new(...)
 	UINT_32 iCodeStackSize = 10240;
 	UINT_32 iStepsLimit    = 1048576;
 	UINT_32 iMaxFunctions  = 1024;
-	std::string sSrcEnc;
-	std::string sDstEnc;
+	STLW::string sSrcEnc;
+	STLW::string sDstEnc;
 
 	if (items % 2 != 1)
 	{
@@ -1460,8 +1617,8 @@ SV *
 CTPP2::output(...)
     CODE:
 	Bytecode     * pBytecode = NULL;
-	std::string    sSrcEnc;
-	std::string    sDstEnc;
+	STLW::string    sSrcEnc;
+	STLW::string    sDstEnc;
 
 	if (items != 2 && items != 4)
 	{
@@ -1511,7 +1668,7 @@ CTPP2::output(...)
 	RETVAL
 
 int
-CTPP2::include_dirs(SV * aIncludeDirs)
+CTPP2::include_dirs(AV * aIncludeDirs)
 
 SV *
 CTPP2::load_bytecode(char * szFileName)
