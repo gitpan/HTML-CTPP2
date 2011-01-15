@@ -632,7 +632,9 @@ int CTPP2::json_param(SV * pParams)
 	{
 		case SVt_IV:
 		case SVt_NV:
+#if (PERL_API_VERSION <= 10)
 		case SVt_RV:
+#endif
 		case SVt_PV:
 		case SVt_PVIV:
 		case SVt_PVNV:
@@ -742,16 +744,25 @@ int CTPP2::param(SV * pParams, CTPP::CDT * pCDT, CTPP::CDT * pUplinkCDT, const S
 			break;
 		// 1
 		case SVt_IV:
-			if (SvIOK(pParams)) { pCDT -> operator=( INT_64(SvIV(pParams)) ); }
+			if (SvIOK(pParams))
+			{
+				pCDT -> operator=( INT_64(SvIV(pParams)) );
+			}
+			else if (SvROK(pParams))
+			{
+				param(SvRV(pParams), pCDT, pUplinkCDT, sKey, iPrevIsHash, iProcessed);
+			}
 			break;
 		// 2
 		case SVt_NV:
 			if (SvNOK(pParams)) { pCDT -> operator=( W_FLOAT(SvNV(pParams)) ); }
 			break;
+#if (PERL_API_VERSION <= 10)
 		// 3
 		case SVt_RV:
 			return param(SvRV(pParams), pCDT, pUplinkCDT, sKey, iPrevIsHash, iProcessed);
 			break;
+#endif
 		// 4
 		case SVt_PV:
 			{
@@ -1522,7 +1533,9 @@ CTPP2::new(...)
 		{
 			case SVt_IV:
 			case SVt_NV:
+#if (PERL_API_VERSION <= 10)
 			case SVt_RV:
+#endif
 			case SVt_PV:
 			case SVt_PVIV:
 			case SVt_PVNV:
@@ -1544,7 +1557,9 @@ CTPP2::new(...)
 		{
 			case SVt_IV:
 			case SVt_NV:
+#if (PERL_API_VERSION <= 10)
 			case SVt_RV:
+#endif
 			case SVt_PV:
 			case SVt_PVIV:
 			case SVt_PVNV:

@@ -1,6 +1,9 @@
 Revision history for Perl extension HTML::CTPP2.
 
-2.6.0  Thu Jub 10 20:08:00 2009
+2.6.7  Thu Nov 18 12:02:00 2010
+	- Fixes for Perl 5.12
+
+2.6.1  Thu Jun 15 20:08:00 2010
 	- New minor version of library
 
 2.5.12 Fri Nov  6 12:22:00 2009

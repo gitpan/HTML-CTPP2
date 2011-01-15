@@ -33,7 +33,7 @@ $SH -> print('CP-1251');
 my %H = ("a" => &get_data());
 ok( $T -> param(\%H) == 0);
 
-ok( encode_base64($T -> dump_params()) eq "SEFTSCB7CiAgICBhID0+INLl8fIg6u7k6PDu4uroIENQLTEyNTEKfQo=\n");
+ok( encode_base64($T -> dump_params()) eq "ewogICJhIiA9PiAi0uXx8iDq7uTo8O7i6uggQ1AtMTI1MSIKfQ==\n");
 
 my $Result = encode_base64($T -> output($Bytecode));
 ok( $Result eq "0uXx8jog0uXx8iDq7uTo8O7i6uggQ1AtMTI1MQo=\n");

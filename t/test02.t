@@ -9,6 +9,7 @@ use Test::More tests => 15;
 BEGIN { use_ok('HTML::CTPP2') };
 
 use strict;
+use MIME::Base64;
 
 my $T = new HTML::CTPP2();
 ok( ref $T eq "HTML::CTPP2", "Create object.");
@@ -37,7 +38,7 @@ my $Result = $T -> output($Bytecode);
 ok( $Result eq "Hello, beautiful World!\n\n");
 
 $T -> reset();
-ok( $T -> dump_params() eq "HASH {\n}\n");
+ok( encode_base64($T -> dump_params()) eq "eyB9\n");
 
 $Result = $T -> output($Bytecode);
 ok( $Result eq "Hello, !\n\n");
@@ -45,7 +46,7 @@ ok( $Result eq "Hello, !\n\n");
 my %HH = ("world" => { name => "awfull World"});
 ok( $T -> param(\%HH) == 0);
 
-ok( $T -> dump_params() eq "HASH {\n    world => 1\n    world.name => awfull World\n}\n");
+ok( encode_base64($T -> dump_params()) eq "ewogICJ3b3JsZCIgPT4gMSwKICAid29ybGQubmFtZSIgPT4gImF3ZnVsbCBXb3JsZCIKfQ==\n");
 
 $Result = $T -> output($Bytecode);
 ok( $Result eq "Hello, awfull World!\n\n");
